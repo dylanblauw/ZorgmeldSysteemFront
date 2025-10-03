@@ -8,6 +8,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{57B003C1-DB15-4FB5-8B1C-02B4300D0B11}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
+		.gitlab-ci.yml = .gitlab-ci.yml
+		README.md = README.md
 	EndProjectSection
 EndProject
 Global

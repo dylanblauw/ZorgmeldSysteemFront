@@ -1,0 +1,51 @@
+stages:
+  - build
+  - test
+
+variables:
+  DOTNET_VERSION: "8.0"
+
+# Cache voor snellere builds
+cache:
+  paths:
+    - .nuget/
+
+before_script:
+  - dotnet --version
+
+# Build de API
+build-api:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - echo "Building API..."
+    - dotnet restore ZorgmeldSysteem.WebApi/ZorgmeldSysteem.WebApi.csproj
+    - dotnet build ZorgmeldSysteem.WebApi/ZorgmeldSysteem.WebApi.csproj --no-restore --configuration Release
+  artifacts:
+    paths:
+      - ZorgmeldSysteem.WebApi/bin/Release/
+    expire_in: 1 hour
+
+# Build de Blazor app
+build-blazor:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - echo "Building Blazor frontend..."
+    - dotnet restore ZorgmeldSysteem.Blazor/ZorgmeldSysteem.Blazor.csproj
+    - dotnet build ZorgmeldSysteem.Blazor/ZorgmeldSysteem.Blazor.csproj --no-restore --configuration Release
+  artifacts:
+    paths:
+      - ZorgmeldSysteem.Blazor/bin/Release/
+    expire_in: 1 hour
+
+# Unit tests (als je die hebt)
+# test:
+#   stage: test
+#   image: mcr.microsoft.com/dotnet/sdk:8.0
+#   script:
+#     - echo "Running tests..."
+#     - dotnet test --no-build --configuration Release
+#   dependencies:
+#     - build-api
+#     - build-blazor

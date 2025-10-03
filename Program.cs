@@ -2,26 +2,43 @@ using ZorgmeldSysteem.Blazor.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+// Add services
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// CORS toevoegen
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazor", policy =>
+    {
+        policy.WithOrigins(
+            "https://localhost:7159", 
+            "http://localhost:5062"    
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod();
+    });
+});
+
+// Jouw services (Company, Mechanic, Ticket, etc.)
+// builder.Services.AddScoped<ICompanyService, CompanyService>();
+// etc...
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
 
-app.UseStaticFiles();
-app.UseAntiforgery();
+// CORS gebruiken - VOOR UseAuthorization!
+app.UseCors("AllowBlazor");
 
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+app.UseAuthorization();
+app.MapControllers();
 
 app.Run();
