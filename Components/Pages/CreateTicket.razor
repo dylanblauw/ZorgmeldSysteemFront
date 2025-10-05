@@ -1,0 +1,256 @@
+﻿@page "/ticket/create"
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Ticket
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Company
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Mechanic
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Object
+@using ZorgmeldSysteem.Blazor.Models.Enums
+@using ZorgmeldSysteem.Blazor.Services
+@inject TicketApiService ApiService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Nieuwe Ticket Aanmaken</PageTitle>
+
+<h3>Nieuwe Ticket Aanmaken</h3>
+<button type="button" class="btn btn-outline-primary mb-3" @onclick="ScanQRCode">
+    <i class="bi bi-qr-code"></i> Scan QR-Code
+</button>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
+    </div>
+}
+
+@if (isLoading)
+{
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">Laden...</span>
+    </div>
+}
+else
+{
+    <EditForm Model="@newTicket" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Bedrijf *</label>
+                    <InputSelect class="form-select" @bind-Value="newTicket.CompanyID" @bind-Value:after="OnCompanyChanged">
+                        <option value="0">-- Selecteer bedrijf --</option>
+                        @foreach (var company in companies)
+                        {
+                            <option value="@company.CompanyID">@company.Name</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Locatie</label>
+                    <InputText class="form-control" @bind-Value="newTicket.Location" @bind-Value:after="FilterObjectsByLocation" placeholder="Bijv. Kamer 204" />
+                    @if (filteredObjects.Count > 0 && !string.IsNullOrWhiteSpace(newTicket.Location))
+                    {
+                        <small class="text-muted">@filteredObjects.Count object(en) gevonden op deze locatie</small>
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Object (optioneel)</label>
+                    <InputSelect class="form-select" @bind-Value="newTicket.ObjectId" @bind-Value:after="OnObjectSelected">
+                        <option value="">-- Geen object --</option>
+                        @foreach (var obj in filteredObjects)
+                        {
+                            <option value="@obj.ObjectID">@obj.Name - @obj.Location</option>
+                        }
+                    </InputSelect>
+                    @if (newTicket.CompanyID == 0)
+                    {
+                        <small class="text-warning">Selecteer eerst een bedrijf</small>
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Monteur (optioneel)</label>
+                    <InputSelect class="form-select" @bind-Value="newTicket.MechanicID">
+                        <option value="">-- Nog niet toegewezen --</option>
+                        @foreach (var mechanic in mechanics)
+                        {
+                            <option value="@mechanic.MechanicID">@mechanic.Name</option>
+                        }
+                    </InputSelect>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Prioriteit *</label>
+                    <InputSelect class="form-select" @bind-Value="newTicket.Priority">
+                        @foreach (Priority priority in Enum.GetValues(typeof(Priority)))
+                        {
+                            <option value="@priority">@priority</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Reactietijd *</label>
+                    <InputSelect class="form-select" @bind-Value="newTicket.ReactionTime">
+                        @foreach (ReactionTime reactionTime in Enum.GetValues(typeof(ReactionTime)))
+                        {
+                            <option value="@reactionTime">@reactionTime</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Aangemaakt door *</label>
+                    <InputText class="form-control" @bind-Value="newTicket.CreatedBy" placeholder="Jouw naam" />
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Beschrijving *</label>
+            <InputTextArea class="form-control" @bind-Value="newTicket.Description" rows="4" placeholder="Beschrijf het probleem..." />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Notitie (optioneel)</label>
+            <InputTextArea class="form-control" @bind-Value="newTicket.Note" rows="3" placeholder="Extra informatie..." />
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                @if (isSaving)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                }
+                Ticket Aanmaken
+            </button>
+            <button type="button" class="btn btn-outline-secondary" @onclick="UploadPhoto">
+                <i class="bi bi-camera"></i> Upload Foto
+            </button>
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuleren</button>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private CreateTicketDto newTicket = new();
+    private List<CompanyDto> companies = new();
+    private List<MechanicDto> mechanics = new();
+    private List<ObjectDto> availableObjects = new();
+    private List<ObjectDto> filteredObjects = new();
+
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            companies = await ApiService.GetAllCompaniesAsync();
+            mechanics = await ApiService.GetActiveMechanicsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij laden van data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OnCompanyChanged()
+    {
+        if (newTicket.CompanyID > 0)
+        {
+            try
+            {
+                availableObjects = await ApiService.GetObjectsByCompanyAsync(newTicket.CompanyID);
+                FilterObjectsByLocation();
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Fout bij laden van objecten: {ex.Message}";
+            }
+        }
+        else
+        {
+            availableObjects.Clear();
+            filteredObjects.Clear();
+        }
+    }
+
+    private void FilterObjectsByLocation()
+    {
+        if (string.IsNullOrWhiteSpace(newTicket.Location))
+        {
+            filteredObjects = new List<ObjectDto>(availableObjects);
+        }
+        else
+        {
+            filteredObjects = availableObjects
+                .Where(obj => obj.Location.Contains(newTicket.Location, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
+    private void OnObjectSelected()
+    {
+        if (newTicket.ObjectId.HasValue && newTicket.ObjectId > 0)
+        {
+            var selectedObject = availableObjects.FirstOrDefault(o => o.ObjectID == newTicket.ObjectId);
+            if (selectedObject != null && string.IsNullOrWhiteSpace(newTicket.Location))
+            {
+                newTicket.Location = selectedObject.Location;
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        isSaving = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var result = await ApiService.CreateTicketAsync(newTicket);
+
+            if (result != null)
+            {
+                Navigation.NavigateTo("/");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij aanmaken ticket: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void ScanQRCode()
+    {
+        // TODO: Implementeer QR-code scanning
+        errorMessage = "QR-code scanning is nog niet geïmplementeerd";
+    }
+
+    private void UploadPhoto()
+    {
+        // TODO: Implementeer foto upload
+        errorMessage = "Foto upload is nog niet geïmplementeerd";
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

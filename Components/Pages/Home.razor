@@ -1,7 +1,188 @@
 ﻿@page "/"
+@using ZorgmeldSysteem.Blazor.Services
+@inject TicketApiService ApiService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard - Zorgmeld Systeem</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container mt-4">
+    <h1 class="mb-4"></h1>
 
-Welcome to your new app.
+    @if (isLoading)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Laden...</span>
+            </div>
+            <p class="mt-3">Statistieken laden...</p>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            <strong>Fout:</strong> @errorMessage
+        </div>
+    }
+    else
+    {
+       
+
+        <!-- Snelle Acties -->
+        <div class="row">
+            <div class="col-12">
+                <h3 class="mb-3">Welcome USER</h3>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-plus-circle display-1 text-primary mb-3"></i>
+                        <h5 class="card-title">Nieuw Ticket</h5>
+                        <p class="card-text">Maak een nieuwe zorgmelding aan</p>
+                        <button class="btn btn-primary" @onclick="GoToCreateTicket">
+                            Aanmaken
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-list-ul display-1 text-secondary mb-3"></i>
+                        <h5 class="card-title">Alle Tickets</h5>
+                        <p class="card-text">Bekijk en beheer alle tickets</p>
+                        <button class="btn btn-outline-secondary" @onclick="GoToTicketList">
+                            Bekijken
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-person-gear display-1 text-success mb-3"></i>
+                        <h5 class="card-title">Monteurs</h5>
+                        <p class="card-text">Beheer monteurs en toewijzingen</p>
+                        <button class="btn btn-outline-success" @onclick="GoToMechanics">
+                            Beheren
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-building display-1 text-info mb-3"></i>
+                        <h5 class="card-title">Bedrijven</h5>
+                        <p class="card-text">Beheer bedrijven en contacten</p>
+                        <button class="btn btn-outline-info" @onclick="GoToCompanies">
+                            Beheren
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-box display-1 text-warning mb-3"></i>
+                        <h5 class="card-title">Objecten</h5>
+                        <p class="card-text">Beheer objecten en onderhoud</p>
+                        <button class="btn btn-outline-warning" @onclick="GoToObjects">
+                            Beheren
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Statistieken Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card text-white bg-danger">
+                    <div class="card-body">
+                        <h5 class="card-title">Open Tickets</h5>
+                        <h2 class="card-text display-4">@openTicketsCount</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <h5 class="card-title">Totaal Tickets</h5>
+                        <h2 class="card-text display-4">@totalTicketsCount</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <h5 class="card-title">Actieve Monteurs</h5>
+                        <h2 class="card-text display-4">@activeMechanicsCount</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <div class="card text-white bg-info">
+                    <div class="card-body">
+                        <h5 class="card-title">Bedrijven</h5>
+                        <h2 class="card-text display-4">@totalCompaniesCount</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private int openTicketsCount = 0;
+    private int totalTicketsCount = 0;
+    private int activeMechanicsCount = 0;
+    private int totalCompaniesCount = 0;
+
+    private bool isLoading = true;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Laad alle statistieken parallel voor snelheid
+            var openTicketsTask = ApiService.GetOpenTicketsCountAsync();
+            var totalTicketsTask = ApiService.GetTotalTicketsCountAsync();
+            var mechanicsTask = ApiService.GetActiveMechanicsCountAsync();
+            var companiesTask = ApiService.GetTotalCompaniesCountAsync();
+
+            await Task.WhenAll(openTicketsTask, totalTicketsTask, mechanicsTask, companiesTask);
+
+            openTicketsCount = await openTicketsTask;
+            totalTicketsCount = await totalTicketsTask;
+            activeMechanicsCount = await mechanicsTask;
+            totalCompaniesCount = await companiesTask;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Kon statistieken niet laden: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoToCreateTicket() => Navigation.NavigateTo("/ticket/create");
+    private void GoToTicketList() => Navigation.NavigateTo("/tickets");
+    private void GoToCompanies() => Navigation.NavigateTo("/companies");
+    private void GoToMechanics() => Navigation.NavigateTo("/mechanics");
+    private void GoToObjects() => Navigation.NavigateTo("/objects");
+}

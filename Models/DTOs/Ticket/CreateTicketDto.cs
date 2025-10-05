@@ -1,4 +1,4 @@
-﻿using ZorgmeldSysteem.Domain.Enums;
+﻿using ZorgmeldSysteem.Blazor.Models.Enums;
 
 namespace ZorgmeldSysteem.Blazor.Models.DTOs.Ticket;
 

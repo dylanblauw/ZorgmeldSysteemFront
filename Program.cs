@@ -1,44 +1,32 @@
 using ZorgmeldSysteem.Blazor.Components;
+using ZorgmeldSysteem.Blazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Add services to the container.
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
 
-// CORS toevoegen
-builder.Services.AddCors(options =>
+// Configureer HttpClient voor je API met de JUISTE API poort
+builder.Services.AddHttpClient<TicketApiService>(client =>
 {
-    options.AddPolicy("AllowBlazor", policy =>
-    {
-        policy.WithOrigins(
-            "https://localhost:7159", 
-            "http://localhost:5062"    
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod();
-    });
+    client.BaseAddress = new Uri("https://localhost:7159/"); // API HTTPS poort
 });
-
-// Jouw services (Company, Mechanic, Ticket, etc.)
-// builder.Services.AddScoped<ICompanyService, CompanyService>();
-// etc...
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseHsts();
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseAntiforgery();
 
-// CORS gebruiken - VOOR UseAuthorization!
-app.UseCors("AllowBlazor");
-
-app.UseAuthorization();
-app.MapControllers();
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
 
 app.Run();
