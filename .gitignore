@@ -85,12 +85,15 @@ _ReSharper*/
 **/[Pp]ackages/*
 !**/[Pp]ackages/build/
 
+# NuGet cache folder
+.nuget/
+
 # SQL Server files
 *.mdf
 *.ldf
 *.ndf
 
-# BELANGRIJK: Database connection strings niet committen!
+# Database connection strings niet committen!
 appsettings.Development.json
 appsettings.Local.json
 
@@ -107,3 +110,4 @@ node_modules/
 # Windows
 Thumbs.db
 ehthumbs.db
+Desktop.ini
