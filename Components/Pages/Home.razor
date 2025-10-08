@@ -36,10 +36,10 @@
         </div>
 
         <div class="row">
-            <div class="col-md-4 mb-3">
+            <div class="col-md-6 mb-3">
                 <div class="card h-100">
                     <div class="card-body text-center">
-                        <i class="bi bi-plus-circle display-1 text-primary mb-3"></i>
+                        <i class="bi bi-list-nested display-1 text-primary mb-3"></i>
                         <h5 class="card-title">Nieuw Ticket</h5>
                         <p class="card-text">Maak een nieuwe zorgmelding aan</p>
                         <button class="btn btn-primary" @onclick="GoToCreateTicket">
@@ -49,20 +49,22 @@
                 </div>
             </div>
 
-            <div class="col-md-4 mb-3">
+            <div class="col-md-6 mb-3">
                 <div class="card h-100">
                     <div class="card-body text-center">
-                        <i class="bi bi-list-ul display-1 text-secondary mb-3"></i>
+                        <i class="bi bi-list-ul display-1 text-primary mb-3"></i>
                         <h5 class="card-title">Alle Tickets</h5>
                         <p class="card-text">Bekijk en beheer alle tickets</p>
-                        <button class="btn btn-outline-secondary" @onclick="GoToTicketList">
+                        <button class="btn btn-outline-primary" @onclick="GoToTicketList">
                             Bekijken
                         </button>
                     </div>
                 </div>
             </div>
+         </div>
+        <div class="row mt-3">
 
-            <div class="col-md-4 mb-3">
+            <div class="col-md-6 mb-3">
                 <div class="card h-100">
                     <div class="card-body text-center">
                         <i class="bi bi-person-gear display-1 text-success mb-3"></i>
@@ -74,9 +76,9 @@
                     </div>
                 </div>
             </div>
-        </div>
+        
 
-        <div class="row mt-3">
+
             <div class="col-md-6 mb-3">
                 <div class="card h-100">
                     <div class="card-body text-center">
@@ -89,20 +91,36 @@
                     </div>
                 </div>
             </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-plus-square display-1 text-secondary mb-3"></i>
+                        <h5 class="card-title">Nieuw Object</h5>
+                        <p class="card-text">Voeg objecten toe</p>
+                        <button class="btn btn-secondary" @onclick="GoToCreateObjects">
+                            Beheren
+                        </button>
+                    </div>
+                </div>
+            </div>
+
 
             <div class="col-md-6 mb-3">
                 <div class="card h-100">
                     <div class="card-body text-center">
-                        <i class="bi bi-box display-1 text-warning mb-3"></i>
-                        <h5 class="card-title">Objecten</h5>
+                        <i class="bi bi-box display-1 text-secondary mb-3"></i>
+                        <h5 class="card-title">Alle Objecten</h5>
                         <p class="card-text">Beheer objecten en onderhoud</p>
-                        <button class="btn btn-outline-warning" @onclick="GoToObjects">
+                        <button class="btn btn-outline-secondary" @onclick="GoToObjects">
                             Beheren
                         </button>
                     </div>
                 </div>
             </div>
         </div>
+        
         <!-- Statistieken Cards -->
         <div class="row mb-4">
             <div class="col-md-3 mb-3">
@@ -185,4 +203,5 @@
     private void GoToCompanies() => Navigation.NavigateTo("/companies");
     private void GoToMechanics() => Navigation.NavigateTo("/mechanics");
     private void GoToObjects() => Navigation.NavigateTo("/objects");
+    private void GoToCreateObjects() => Navigation.NavigateTo("/object/create");
 }

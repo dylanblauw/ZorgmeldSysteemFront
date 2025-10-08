@@ -1,0 +1,256 @@
+﻿@page "/objects"
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Object
+@using ZorgmeldSysteem.Blazor.Services
+@inject ObjectApiService ObjectApiService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Objecten Overzicht</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Objecten Overzicht</h3>
+        <button class="btn btn-primary" @onclick="GoToCreateObject">
+            <i class="bi bi-plus-circle"></i> Nieuw Object
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            @errorMessage
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Laden...</span>
+            </div>
+            <p class="mt-3">Objecten laden...</p>
+        </div>
+    }
+    else if (objects.Count == 0)
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Geen objecten gevonden.
+        </div>
+    }
+    else
+    {
+        <!-- Filter sectie -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Zoeken</label>
+                        <input type="text" class="form-control" @bind="searchQuery" @bind:event="oninput" placeholder="Zoek op naam, code..." />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Bedrijf</label>
+                        <select class="form-select" @bind="filterCompany" @bind:after="OnCompanyFilterChanged">
+                            <option value="">Alle bedrijven</option>
+                            @foreach (var company in UniqueCompanies)
+                            {
+                                <option value="@company">@company</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Locatie</label>
+                        <select class="form-select" @bind="filterLocation" disabled="@string.IsNullOrEmpty(filterCompany)">
+                            <option value="">Alle locaties</option>
+                            @foreach (var location in AvailableLocations)
+                            {
+                                <option value="@location">@location</option>
+                            }
+                        </select>
+                        @if (string.IsNullOrEmpty(filterCompany))
+                        {
+                            <small class="text-muted">Selecteer eerst een bedrijf</small>
+                        }
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-secondary w-100" @onclick="ClearFilters">
+                            <i class="bi bi-x-circle"></i> Reset Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Objecten grid -->
+        <div class="row">
+            @foreach (var obj in FilteredObjects)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title">@obj.Name</h5>
+                                <span class="badge bg-primary">@obj.ObjectCode</span>
+                            </div>
+
+                            <p class="card-text text-muted mb-2">
+                                <i class="bi bi-building"></i> @obj.CompanyName
+                            </p>
+
+                            <p class="card-text text-muted mb-2">
+                                <i class="bi bi-geo-alt"></i> @obj.Location
+                            </p>
+
+                            @if (!string.IsNullOrWhiteSpace(obj.Brand))
+                            {
+                                <p class="card-text mb-1">
+                                    <strong>Merk:</strong> @obj.Brand
+                                    @if (!string.IsNullOrWhiteSpace(obj.Model))
+                                    {
+                                        <span> - @obj.Model</span>
+                                    }
+                                </p>
+                            }
+
+                            @if (obj.NextMaintenance.HasValue)
+                            {
+                                var isOverdue = obj.NextMaintenance.Value < DateTime.Now;
+                                <p class="card-text">
+                                    <strong>Volgend onderhoud:</strong>
+                                    <span class="@(isOverdue ? "text-danger" : "text-success")">
+                                        @obj.NextMaintenance.Value.ToString("dd-MM-yyyy")
+                                        @if (isOverdue)
+                                        {
+                                            <i class="bi bi-exclamation-triangle"></i>
+                                        }
+                                    </span>
+                                </p>
+                            }
+
+                            <div class="mt-3">
+                                <button class="btn btn-sm btn-primary" @onclick="() => ViewObject(obj.ObjectID)">
+                                    <i class="bi bi-eye"></i> Bekijken
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => CreateTicketForObject(obj.ObjectID)">
+                                    <i class="bi bi-ticket"></i> Ticket
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <p class="text-muted mt-3">@FilteredObjects.Count van @objects.Count objecten</p>
+    }
+</div>
+
+@code {
+    private List<ObjectDto> objects = new();
+    private bool isLoading = true;
+    private string errorMessage = string.Empty;
+
+    // Filters
+    private string searchQuery = string.Empty;
+    private string filterCompany = string.Empty;
+    private string filterLocation = string.Empty;
+
+    private List<string> UniqueCompanies => objects
+        .Select(o => o.CompanyName)
+        .Distinct()
+        .OrderBy(c => c)
+        .ToList();
+
+    private List<string> AvailableLocations
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(filterCompany))
+                return new List<string>();
+
+            return objects
+                .Where(o => o.CompanyName == filterCompany)
+                .Select(o => o.Location)
+                .Distinct()
+                .OrderBy(l => l)
+                .ToList();
+        }
+    }
+
+    private List<ObjectDto> FilteredObjects
+    {
+        get
+        {
+            var filtered = objects.AsEnumerable();
+
+            // Zoek filter
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                filtered = filtered.Where(o =>
+                    o.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    o.ObjectCode.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    o.Location.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    o.CompanyName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
+                );
+            }
+
+            // Bedrijf filter
+            if (!string.IsNullOrWhiteSpace(filterCompany))
+            {
+                filtered = filtered.Where(o => o.CompanyName == filterCompany);
+            }
+
+            // Locatie filter
+            if (!string.IsNullOrWhiteSpace(filterLocation))
+            {
+                filtered = filtered.Where(o => o.Location == filterLocation);
+            }
+
+            return filtered.ToList();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            objects = await ObjectApiService.GetAllObjectsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij laden van objecten: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ClearFilters()
+    {
+        searchQuery = string.Empty;
+        filterCompany = string.Empty;
+        filterLocation = string.Empty;
+    }
+
+    private void OnCompanyFilterChanged()
+    {
+        // Reset locatie filter als bedrijf verandert
+        filterLocation = string.Empty;
+    }
+
+    private void ViewObject(int objectId)
+    {
+        Navigation.NavigateTo($"/object/{objectId}");
+    }
+
+    private void CreateTicketForObject(int objectId)
+    {
+        Navigation.NavigateTo($"/ticket/create?objectId={objectId}");
+    }
+
+    private void GoToCreateObject()
+    {
+        Navigation.NavigateTo("/object/create");
+    }
+}

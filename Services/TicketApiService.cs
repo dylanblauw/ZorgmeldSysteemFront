@@ -40,12 +40,6 @@ namespace ZorgmeldSysteem.Blazor.Services
             return await _httpClient.GetFromJsonAsync<List<MechanicDto>>("api/mechanic/active") ?? new List<MechanicDto>();
         }
 
-        // Object endpoints
-        public async Task<List<ObjectDto>> GetObjectsByCompanyAsync(int companyId)
-        {
-            return await _httpClient.GetFromJsonAsync<List<ObjectDto>>($"api/object/company/{companyId}") ?? new List<ObjectDto>();
-        }
-
         // Dashboard statistieken
         public async Task<int> GetOpenTicketsCountAsync()
         {

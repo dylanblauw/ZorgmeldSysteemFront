@@ -1,0 +1,260 @@
+﻿@page "/object/create"
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Object
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Company
+@using ZorgmeldSysteem.Blazor.Services
+@using QRCoder
+@inject ObjectApiService ObjectApiService
+@inject TicketApiService TicketApiService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Nieuw Object Aanmaken</PageTitle>
+
+<div class="container mt-4">
+    <h3>Nieuw Object Aanmaken</h3>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            @errorMessage
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Laden...</span>
+        </div>
+    }
+    else if (objectCreated && createdObject != null)
+    {
+        <!-- Success + QR Code -->
+        <div class="alert alert-success">
+            <h4>✅ Object succesvol aangemaakt!</h4>
+            <p><strong>Object:</strong> @createdObject.Name</p>
+            <p><strong>Code:</strong> @createdObject.ObjectCode</p>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5>QR-Code voor dit object</h5>
+            </div>
+            <div class="card-body text-center">
+                @if (!string.IsNullOrEmpty(qrCodeBase64))
+                {
+                    <img src="@qrCodeBase64" alt="QR Code" class="img-fluid mb-3" style="max-width: 300px;" />
+                    <br />
+                    <button class="btn btn-primary" @onclick="DownloadQRCode">
+                        <i class="bi bi-download"></i> Download QR-Code
+                    </button>
+                    <button class="btn btn-secondary" @onclick="PrintQRCode">
+                        <i class="bi bi-printer"></i> Print QR-Code
+                    </button>
+                }
+            </div>
+            <div class="card-footer">
+                <small class="text-muted">
+                    Scan deze QR-code bij het aanmaken van een ticket om automatisch dit object te selecteren.
+                </small>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button class="btn btn-success" @onclick="CreateAnother">Nog een object aanmaken</button>
+            <button class="btn btn-outline-secondary" @onclick="GoToObjectList">Naar objectenlijst</button>
+        </div>
+    }
+    else
+    {
+        <!-- Formulier -->
+        <EditForm Model="@newObject" OnValidSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Bedrijf *</label>
+                        <InputSelect class="form-select" @bind-Value="newObject.CompanyID">
+                            <option value="0">-- Selecteer bedrijf --</option>
+                            @foreach (var company in companies)
+                            {
+                                <option value="@company.CompanyID">@company.Name</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Object Code *</label>
+                        <InputText class="form-control" @bind-Value="newObject.ObjectCode" placeholder="Bijv. OBJ-LIFT-001" />
+                        <small class="text-muted">Unieke code voor dit object</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Naam *</label>
+                        <InputText class="form-control" @bind-Value="newObject.Name" placeholder="Bijv. Personenlift Vleugel A" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Locatie *</label>
+                        <InputText class="form-control" @bind-Value="newObject.Location" placeholder="Bijv. Vleugel A, begane grond" />
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Merk</label>
+                        <InputText class="form-control" @bind-Value="newObject.Brand" placeholder="Bijv. Schindler" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Model</label>
+                        <InputText class="form-control" @bind-Value="newObject.Model" placeholder="Bijv. 3300 AP" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Serienummer</label>
+                        <InputText class="form-control" @bind-Value="newObject.SerialNumber" placeholder="Bijv. SCH-2019-4782" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Installatiedatum</label>
+                        <InputDate class="form-control" @bind-Value="newObject.InstallationDate" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Beschrijving</label>
+                <InputTextArea class="form-control" @bind-Value="newObject.Description" rows="3" placeholder="Beschrijving van het object..." />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Volgende onderhoud</label>
+                <InputDate class="form-control" @bind-Value="newObject.NextMaintenance" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Aangemaakt door *</label>
+                <InputText class="form-control" @bind-Value="newObject.CreatedBy" placeholder="Jouw naam" />
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    Object Aanmaken
+                </button>
+                <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuleren</button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    private CreateObjectDto newObject = new();
+    private ObjectDto? createdObject = null;
+    private List<CompanyDto> companies = new();
+
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool objectCreated = false;
+    private string errorMessage = string.Empty;
+    private string qrCodeBase64 = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            companies = await TicketApiService.GetAllCompaniesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij laden van data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        isSaving = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            createdObject = await ObjectApiService.CreateObjectAsync(newObject);
+
+            if (createdObject != null)
+            {
+                objectCreated = true;
+                GenerateQRCode(createdObject.ObjectID);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij aanmaken object: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void GenerateQRCode(int objectId)
+    {
+        try
+        {
+            // QR-code data: gewoon het ObjectID
+            string qrData = $"OBJECT:{objectId}";
+
+            using (QRCodeGenerator qrGenerator = new QRCodeGenerator())
+            using (QRCodeData qrCodeData = qrGenerator.CreateQrCode(qrData, QRCodeGenerator.ECCLevel.Q))
+            using (PngByteQRCode qrCode = new PngByteQRCode(qrCodeData))
+            {
+                byte[] qrCodeImage = qrCode.GetGraphic(20);
+                qrCodeBase64 = $"data:image/png;base64,{Convert.ToBase64String(qrCodeImage)}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij genereren QR-code: {ex.Message}";
+        }
+    }
+
+    private void DownloadQRCode()
+    {
+        // JavaScript interop zou nodig zijn voor echte download
+        // Voor nu: gebruiker kan rechtermuisknop -> opslaan als
+        errorMessage = "Klik met rechtermuisknop op de QR-code en kies 'Afbeelding opslaan als...'";
+    }
+
+    private void PrintQRCode()
+    {
+        // JavaScript interop voor printen
+        errorMessage = "Gebruik Ctrl+P om te printen, of klik met rechtermuisknop op de QR-code";
+    }
+
+    private void CreateAnother()
+    {
+        newObject = new CreateObjectDto();
+        createdObject = null;
+        objectCreated = false;
+        qrCodeBase64 = string.Empty;
+        errorMessage = string.Empty;
+    }
+
+    private void GoToObjectList()
+    {
+        Navigation.NavigateTo("/objects");
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

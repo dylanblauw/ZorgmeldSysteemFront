@@ -6,8 +6,10 @@
 @using ZorgmeldSysteem.Blazor.Models.Enums
 @using ZorgmeldSysteem.Blazor.Services
 @inject TicketApiService ApiService
+@inject ObjectApiService ObjectApiService
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
+En in OnCompanyChangedHandler:
 
 <PageTitle>Nieuwe Ticket Aanmaken</PageTitle>
 
@@ -39,27 +41,37 @@ else
             <div class="col-md-6">
                 <div class="mb-3">
                     <label class="form-label">Bedrijf *</label>
-                    <InputSelect class="form-select" @bind-Value="newTicket.CompanyID" @bind-Value:after="OnCompanyChanged">
+                    <select class="form-select" @onchange="OnCompanyChangedHandler">
                         <option value="0">-- Selecteer bedrijf --</option>
                         @foreach (var company in companies)
                         {
-                            <option value="@company.CompanyID">@company.Name</option>
+                            <option value="@company.CompanyID" selected="@(company.CompanyID == newTicket.CompanyID)">@company.Name</option>
                         }
-                    </InputSelect>
+                    </select>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Locatie</label>
-                    <InputText class="form-control" @bind-Value="newTicket.Location" @bind-Value:after="FilterObjectsByLocation" placeholder="Bijv. Kamer 204" />
+                    <select class="form-select" value="@newTicket.Location" @onchange="OnLocationChangedHandler">
+                        <option value="">-- Selecteer locatie --</option>
+                        @foreach (var location in availableLocations)
+                        {
+                            <option value="@location">@location</option>
+                        }
+                    </select>
                     @if (filteredObjects.Count > 0 && !string.IsNullOrWhiteSpace(newTicket.Location))
                     {
                         <small class="text-muted">@filteredObjects.Count object(en) gevonden op deze locatie</small>
+                    }
+                    @if (newTicket.CompanyID == 0)
+                    {
+                        <small class="text-warning">Selecteer eerst een bedrijf</small>
                     }
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Object (optioneel)</label>
-                    <InputSelect class="form-select" @bind-Value="newTicket.ObjectId" @bind-Value:after="OnObjectSelected">
+                    <InputSelect class="form-select" @bind-Value="newTicket.ObjectId">
                         <option value="">-- Geen object --</option>
                         @foreach (var obj in filteredObjects)
                         {
@@ -144,6 +156,7 @@ else
     private List<MechanicDto> mechanics = new();
     private List<ObjectDto> availableObjects = new();
     private List<ObjectDto> filteredObjects = new();
+    private List<string> availableLocations = new();
 
     private bool isLoading = true;
     private bool isSaving = false;
@@ -166,25 +179,46 @@ else
         }
     }
 
-    private async Task OnCompanyChanged()
+    private async Task OnCompanyChangedHandler(ChangeEventArgs e)
     {
-        if (newTicket.CompanyID > 0)
+        if (int.TryParse(e.Value?.ToString(), out int companyId))
         {
-            try
+            newTicket.CompanyID = companyId;
+
+            if (companyId > 0)
             {
-                availableObjects = await ApiService.GetObjectsByCompanyAsync(newTicket.CompanyID);
-                FilterObjectsByLocation();
+                try
+                {
+                    var locationsTask = ObjectApiService.GetLocationsByCompanyAsync(companyId);
+                    var objectsTask = ObjectApiService.GetObjectsByCompanyAsync(companyId);
+
+                    await Task.WhenAll(locationsTask, objectsTask);
+
+                    availableLocations = await locationsTask;
+                    availableObjects = await objectsTask;
+                    filteredObjects = new List<ObjectDto>(availableObjects);
+
+                    newTicket.Location = string.Empty;
+                }
+                catch (Exception ex)
+                {
+                    errorMessage = $"Fout bij laden van objecten: {ex.Message}";
+                }
             }
-            catch (Exception ex)
+            else
             {
-                errorMessage = $"Fout bij laden van objecten: {ex.Message}";
+                availableLocations.Clear();
+                availableObjects.Clear();
+                filteredObjects.Clear();
+                newTicket.Location = string.Empty;
             }
         }
-        else
-        {
-            availableObjects.Clear();
-            filteredObjects.Clear();
-        }
+    }
+
+    private void OnLocationChangedHandler(ChangeEventArgs e)
+    {
+        newTicket.Location = e.Value?.ToString() ?? string.Empty;
+        FilterObjectsByLocation();
     }
 
     private void FilterObjectsByLocation()
@@ -196,20 +230,8 @@ else
         else
         {
             filteredObjects = availableObjects
-                .Where(obj => obj.Location.Contains(newTicket.Location, StringComparison.OrdinalIgnoreCase))
+                .Where(obj => obj.Location.Equals(newTicket.Location, StringComparison.OrdinalIgnoreCase))
                 .ToList();
-        }
-    }
-
-    private void OnObjectSelected()
-    {
-        if (newTicket.ObjectId.HasValue && newTicket.ObjectId > 0)
-        {
-            var selectedObject = availableObjects.FirstOrDefault(o => o.ObjectID == newTicket.ObjectId);
-            if (selectedObject != null && string.IsNullOrWhiteSpace(newTicket.Location))
-            {
-                newTicket.Location = selectedObject.Location;
-            }
         }
     }
 
@@ -239,13 +261,11 @@ else
 
     private void ScanQRCode()
     {
-        // TODO: Implementeer QR-code scanning
         errorMessage = "QR-code scanning is nog niet geïmplementeerd";
     }
 
     private void UploadPhoto()
     {
-        // TODO: Implementeer foto upload
         errorMessage = "Foto upload is nog niet geïmplementeerd";
     }
 

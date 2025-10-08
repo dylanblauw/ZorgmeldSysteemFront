@@ -12,7 +12,10 @@ builder.Services.AddHttpClient<TicketApiService>(client =>
 {
     client.BaseAddress = new Uri("https://localhost:7159/"); // API HTTPS poort
 });
-
+builder.Services.AddHttpClient<ObjectApiService>(client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7159/");
+});
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
