@@ -1,4 +1,5 @@
 ﻿@page "/Tickets"
+@using Microsoft.AspNetCore.Components.QuickGrid
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Ticket
 @using ZorgmeldSysteem.Blazor.Models.Enums
 @using ZorgmeldSysteem.Blazor.Services
@@ -32,39 +33,36 @@
             <p class="mt-3">Tickets laden...</p>
         </div>
     }
-    else if (tickets.Count == 0)
-    {
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> Geen tickets gevonden.
-        </div>
-    }
     else
     {
         <!-- Filter sectie -->
         <div class="card mb-4">
             <div class="card-body">
-                <div class="row">
+                <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Zoeken</label>
-                        <input type="text" class="form-control" @bind="searchQuery" @bind:event="oninput" placeholder="Zoek op ticketcode of beschrijving..." />
+                        <input type="text" class="form-control"
+                               @bind="searchQuery"
+                               @bind:event="oninput"
+                               placeholder="Zoek op code, beschrijving of bedrijf..." />
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Status</label>
-                        <select class="form-select" @bind="filterStatus">
+                        <select class="form-select" @bind="filterStatus" @bind:event="onchange">
                             <option value="">Alle statussen</option>
                             @foreach (TicketStatus status in Enum.GetValues(typeof(TicketStatus)))
                             {
-                                <option value="@((int)status)">@status</option>
+                                <option value="@((int)status)">@GetStatusDisplayName(status)</option>
                             }
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Prioriteit</label>
-                        <select class="form-select" @bind="filterPriority">
+                        <select class="form-select" @bind="filterPriority" @bind:event="onchange">
                             <option value="">Alle prioriteiten</option>
                             @foreach (Priority priority in Enum.GetValues(typeof(Priority)))
                             {
-                                <option value="@((int)priority)">@priority</option>
+                                <option value="@((int)priority)">@GetPriorityDisplayName(priority)</option>
                             }
                         </select>
                     </div>
@@ -75,100 +73,181 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Actieve filters tonen -->
+                @if (HasActiveFilters)
+                {
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            Actieve filters:
+                            @if (!string.IsNullOrWhiteSpace(searchQuery))
+                            {
+                                <span class="badge bg-info me-1">Zoekterm: @searchQuery</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(filterStatus))
+                            {
+                                <span class="badge bg-info me-1">Status: @GetStatusDisplayName((TicketStatus)int.Parse(filterStatus))</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(filterPriority))
+                            {
+                                <span class="badge bg-info me-1">Prioriteit: @GetPriorityDisplayName((Priority)int.Parse(filterPriority))</span>
+                            }
+                        </small>
+                    </div>
+                }
             </div>
         </div>
 
-        <!-- Tickets tabel -->
+        <!-- QuickGrid implementatie -->
         <div class="card">
             <div class="card-body">
-                <p class="text-muted">@FilteredTickets.Count van @tickets.Count tickets</p>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Ticket Code</th>
-                                <th>Beschrijving</th>
-                                <th>Bedrijf</th>
-                                <th>Status</th>
-                                <th>Prioriteit</th>
-                                <th>Aangemaakt</th>
-                                <th>Acties</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var ticket in FilteredTickets)
-                            {
-                                <tr style="cursor: pointer;" @onclick="() => ViewTicket(ticket.TicketID)">
-                                    <td><strong>@ticket.TicketCode</strong></td>
-                                    <td>@ticket.Description</td>
-                                    <td>@ticket.CompanyName</td>
-                                    <td>
-                                        <span class="badge @GetStatusBadgeClass(ticket.Status)">
-                                            @ticket.Status
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge @GetPriorityBadgeClass(ticket.Priority)">
-                                            @ticket.Priority
-                                        </span>
-                                    </td>
-                                    <td>@ticket.CreatedOn.ToString("dd-MM-yyyy HH:mm")</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-primary" @onclick:stopPropagation="true" @onclick="() => ViewTicket(ticket.TicketID)">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-filter"></i> @FilteredTickets.Count() van @tickets.Count tickets
+                    </p>
+                    <div>
+                        <label class="me-2">Items per pagina:</label>
+                        <select class="form-select form-select-sm d-inline-block" style="width: auto;"
+                                @bind="@pagination.ItemsPerPage" @bind:event="onchange">
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
                 </div>
+
+                <QuickGrid Items="@FilteredTickets" Pagination="@pagination" Class="table">
+                    <PropertyColumn Property="@(t => t.TicketCode)" Title="Ticket Code" Sortable="true">
+                        <ColumnOptions>
+                            <div class="search-box">
+                                <input type="text" @bind="codeFilter" @bind:event="oninput"
+                                       placeholder="Filter code..." class="form-control form-control-sm" />
+                            </div>
+                        </ColumnOptions>
+                    </PropertyColumn>
+
+                    <PropertyColumn Property="@(t => t.Description)" Title="Beschrijving" Sortable="true" />
+
+                    <PropertyColumn Property="@(t => t.CompanyName)" Title="Bedrijf" Sortable="true" />
+
+                    <TemplateColumn Title="Status" Sortable="true"
+                                    SortBy="@(GridSort<TicketDto>.ByAscending(t => t.Status))">
+                        <span class="badge @GetStatusBadgeClass(context.Status)">
+                            @GetStatusDisplayName(context.Status)
+                        </span>
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Prioriteit" Sortable="true"
+                                    SortBy="@(GridSort<TicketDto>.ByAscending(t => t.Priority))">
+                        <span class="badge @GetPriorityBadgeClass(context.Priority)">
+                            <i class="bi @GetPriorityIcon(context.Priority)"></i>
+                            @GetPriorityDisplayName(context.Priority)
+                        </span>
+                    </TemplateColumn>
+
+                    <PropertyColumn Property="@(t => t.CreatedOn)" Title="Aangemaakt"
+                                    Format="dd-MM-yyyy HH:mm" Sortable="true" />
+
+                    <TemplateColumn Title="Acties">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-primary"
+                                    @onclick="() => ViewTicket(context.TicketID)"
+                                    title="Bekijken">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-warning"
+                                    @onclick="() => EditTicket(context.TicketID)"
+                                    title="Bewerken">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </div>
+                    </TemplateColumn>
+                </QuickGrid>
+
+                <Paginator State="@pagination" />
             </div>
         </div>
     }
 </div>
 
+<style>
+    .search-box {
+        min-width: 100px;
+    }
+
+    /* Custom styling voor de QuickGrid */
+    .quickgrid {
+        font-size: 0.95rem;
+    }
+
+        .quickgrid th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .quickgrid tbody tr:hover {
+            background-color: #f5f5f5;
+            cursor: pointer;
+        }
+</style>
+
 @code {
     private List<TicketDto> tickets = new();
     private bool isLoading = true;
     private string errorMessage = string.Empty;
+    private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
 
     // Filters
     private string searchQuery = string.Empty;
     private string filterStatus = string.Empty;
     private string filterPriority = string.Empty;
+    private string codeFilter = string.Empty;
 
-    private List<TicketDto> FilteredTickets
+    private bool HasActiveFilters =>
+        !string.IsNullOrWhiteSpace(searchQuery) ||
+        !string.IsNullOrWhiteSpace(filterStatus) ||
+        !string.IsNullOrWhiteSpace(filterPriority) ||
+        !string.IsNullOrWhiteSpace(codeFilter);
+
+    private IQueryable<TicketDto> FilteredTickets
     {
         get
         {
-            var filtered = tickets.AsEnumerable();
+            IQueryable<TicketDto> query = tickets.AsQueryable();
 
-            // Zoek filter
+            // Algemene zoekfilter
             if (!string.IsNullOrWhiteSpace(searchQuery))
             {
-                filtered = filtered.Where(t =>
+                query = query.Where(t =>
                     t.TicketCode.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
                     t.Description.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
                     t.CompanyName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
                 );
             }
 
+            // Code filter (column specific)
+            if (!string.IsNullOrWhiteSpace(codeFilter))
+            {
+                query = query.Where(t =>
+                    t.TicketCode.Contains(codeFilter, StringComparison.OrdinalIgnoreCase));
+            }
+
             // Status filter
             if (!string.IsNullOrWhiteSpace(filterStatus))
             {
-                var status = (TicketStatus)int.Parse(filterStatus);
-                filtered = filtered.Where(t => t.Status == status);
+                TicketStatus status = (TicketStatus)int.Parse(filterStatus);
+                query = query.Where(t => t.Status == status);
             }
 
             // Prioriteit filter
             if (!string.IsNullOrWhiteSpace(filterPriority))
             {
-                var priority = (Priority)int.Parse(filterPriority);
-                filtered = filtered.Where(t => t.Priority == priority);
+                Priority priority = (Priority)int.Parse(filterPriority);
+                query = query.Where(t => t.Priority == priority);
             }
 
-            return filtered.ToList();
+            return query;
         }
     }
 
@@ -193,6 +272,8 @@
         searchQuery = string.Empty;
         filterStatus = string.Empty;
         filterPriority = string.Empty;
+        codeFilter = string.Empty;
+        pagination.ItemsPerPage = 10;
     }
 
     private void ViewTicket(int ticketId)
@@ -200,35 +281,73 @@
         Navigation.NavigateTo($"/ticket/{ticketId}");
     }
 
+    private void EditTicket(int ticketId)
+    {
+        Navigation.NavigateTo($"/ticket/edit/{ticketId}");
+    }
+
     private void GoToCreateTicket()
     {
-        Navigation.NavigateTo("/ticket/create");
+        // Probeer zonder leading slash
+        Navigation.NavigateTo("ticket/create");
+
+        // Als bovenstaande niet werkt, probeer dan:
+        // Navigation.NavigateTo("/ticket/create", false);
+        // Navigation.NavigateTo("/ticket/create", true); // force load
+        // Navigation.NavigateTo("Tickets/Create"); // andere route naam
     }
 
-    private string GetStatusBadgeClass(TicketStatus status)
+    // Helper methodes voor display namen
+    private string GetStatusDisplayName(TicketStatus status) => status switch
     {
-        return status switch
-        {
-            TicketStatus.Open => "bg-warning",
-            TicketStatus.Assigned => "bg-info",
-            TicketStatus.InProgress => "bg-primary",
-            TicketStatus.Solved => "bg-success",
-            TicketStatus.Closed => "bg-secondary",
-            TicketStatus.Cancelled => "bg-danger",
-            _ => "bg-secondary"
-        };
-    }
+        TicketStatus.Open => "Open",
+        TicketStatus.Assigned => "Toegewezen",
+        TicketStatus.InProgress => "In Behandeling",
+        TicketStatus.Solved => "Opgelost",
+        TicketStatus.Closed => "Gesloten",
+        TicketStatus.Cancelled => "Geannuleerd",
+        _ => status.ToString()
+    };
 
-    private string GetPriorityBadgeClass(Priority priority)
+    private string GetPriorityDisplayName(Priority priority) => priority switch
     {
-        return priority switch
-        {
-            Priority.Low => "bg-secondary",
-            Priority.Normal => "bg-info",
-            Priority.High => "bg-warning",
-            Priority.Urgent => "bg-danger",
-            Priority.Critical => "bg-dark text-white",
-            _ => "bg-secondary"
-        };
-    }
+        Priority.Low => "Laag",
+        Priority.Normal => "Normaal",
+        Priority.High => "Hoog",
+        Priority.Urgent => "Urgent",
+        Priority.Critical => "Kritiek",
+        _ => priority.ToString()
+    };
+
+    // Helper methodes voor styling
+    private string GetStatusBadgeClass(TicketStatus status) => status switch
+    {
+        TicketStatus.Open => "bg-warning text-dark",
+        TicketStatus.Assigned => "bg-info",
+        TicketStatus.InProgress => "bg-primary",
+        TicketStatus.Solved => "bg-success",
+        TicketStatus.Closed => "bg-secondary",
+        TicketStatus.Cancelled => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private string GetPriorityBadgeClass(Priority priority) => priority switch
+    {
+        Priority.Low => "bg-secondary",
+        Priority.Normal => "bg-info",
+        Priority.High => "bg-warning text-dark",
+        Priority.Urgent => "bg-danger",
+        Priority.Critical => "bg-dark",
+        _ => "bg-secondary"
+    };
+
+    private string GetPriorityIcon(Priority priority) => priority switch
+    {
+        Priority.Low => "bi-arrow-down",
+        Priority.Normal => "bi-dash",
+        Priority.High => "bi-arrow-up",
+        Priority.Urgent => "bi-exclamation-triangle",
+        Priority.Critical => "bi-exclamation-octagon",
+        _ => "bi-dash"
+    };
 }
