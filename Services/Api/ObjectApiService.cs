@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Json;
 using ZorgmeldSysteem.Blazor.Models.DTOs.Object;
 
-namespace ZorgmeldSysteem.Blazor.Services
+namespace ZorgmeldSysteem.Blazor.Services.Api
 {
     public class ObjectApiService
     {

@@ -1,12 +1,16 @@
 ﻿@page "/object/create"
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Object
+@using ZorgmeldSysteem.Blazor.ViewModels
+@using ZorgmeldSysteem.Blazor.Services.Api
+@using ZorgmeldSysteem.Blazor.Services.Business
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Object
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Company
-@using ZorgmeldSysteem.Blazor.Services
-@using QRCoder
 @inject ObjectApiService ObjectApiService
 @inject TicketApiService TicketApiService
+@inject QRCodeService QRService
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@implements IDisposable
 @rendermode InteractiveServer
 
 <PageTitle>Nieuw Object Aanmaken</PageTitle>
@@ -14,26 +18,26 @@
 <div class="container mt-4">
     <h3>Nieuw Object Aanmaken</h3>
 
-    @if (!string.IsNullOrEmpty(errorMessage))
+    @if (!string.IsNullOrEmpty(viewModel.ErrorMessage))
     {
         <div class="alert alert-danger" role="alert">
-            @errorMessage
+            @viewModel.ErrorMessage
         </div>
     }
 
-    @if (isLoading)
+    @if (viewModel.IsLoading)
     {
         <div class="spinner-border" role="status">
             <span class="visually-hidden">Laden...</span>
         </div>
     }
-    else if (objectCreated && createdObject != null)
+    else if (viewModel.ObjectCreated && viewModel.CreatedObject != null)
     {
         <!-- Success + QR Code -->
         <div class="alert alert-success">
-            <h4>✅ Object succesvol aangemaakt!</h4>
-            <p><strong>Object:</strong> @createdObject.Name</p>
-            <p><strong>Code:</strong> @createdObject.ObjectCode</p>
+            <h4>Object succesvol aangemaakt!</h4>
+            <p><strong>Object:</strong> @viewModel.CreatedObject.Name</p>
+            <p><strong>Code:</strong> @viewModel.CreatedObject.ObjectCode</p>
         </div>
 
         <div class="card">
@@ -41,9 +45,9 @@
                 <h5>QR-Code voor dit object</h5>
             </div>
             <div class="card-body text-center">
-                @if (!string.IsNullOrEmpty(qrCodeBase64))
+                @if (!string.IsNullOrEmpty(viewModel.QRCodeBase64))
                 {
-                    <img src="@qrCodeBase64" alt="QR Code" class="img-fluid mb-3" style="max-width: 300px;" />
+                    <img src="@viewModel.QRCodeBase64" alt="QR Code" class="img-fluid mb-3" style="max-width: 300px;" />
                     <br />
                     <button class="btn btn-primary" @onclick="DownloadQRCode">
                         <i class="bi bi-download"></i> Download QR-Code
@@ -65,7 +69,7 @@
             <button class="btn btn-outline-secondary" @onclick="GoToObjectList">Naar objectenlijst</button>
         </div>
     }
-    else if (showPreview)
+    else if (viewModel.ShowPreview)
     {
         <!-- Preview scherm met QR-code VOOR opslaan -->
         <div class="card mb-3">
@@ -79,48 +83,48 @@
                         <table class="table table-sm">
                             <tr>
                                 <th>Bedrijf:</th>
-                                <td>@GetCompanyName(newObject.CompanyID)</td>
+                                <td>@viewModel.GetCompanyName(viewModel.NewObject.CompanyID)</td>
                             </tr>
                             <tr>
                                 <th>Object Code:</th>
-                                <td><strong>@newObject.ObjectCode</strong></td>
+                                <td><strong>@viewModel.NewObject.ObjectCode</strong></td>
                             </tr>
                             <tr>
                                 <th>Naam:</th>
-                                <td>@newObject.Name</td>
+                                <td>@viewModel.NewObject.Name</td>
                             </tr>
                             <tr>
                                 <th>Locatie:</th>
-                                <td>@newObject.Location</td>
+                                <td>@viewModel.NewObject.Location</td>
                             </tr>
-                            @if (!string.IsNullOrEmpty(newObject.Brand))
+                            @if (!string.IsNullOrEmpty(viewModel.NewObject.Brand))
                             {
                                 <tr>
                                     <th>Merk:</th>
-                                    <td>@newObject.Brand</td>
+                                    <td>@viewModel.NewObject.Brand</td>
                                 </tr>
                             }
-                            @if (!string.IsNullOrEmpty(newObject.Model))
+                            @if (!string.IsNullOrEmpty(viewModel.NewObject.Model))
                             {
                                 <tr>
                                     <th>Model:</th>
-                                    <td>@newObject.Model</td>
+                                    <td>@viewModel.NewObject.Model</td>
                                 </tr>
                             }
-                            @if (!string.IsNullOrEmpty(newObject.SerialNumber))
+                            @if (!string.IsNullOrEmpty(viewModel.NewObject.SerialNumber))
                             {
                                 <tr>
                                     <th>Serienummer:</th>
-                                    <td>@newObject.SerialNumber</td>
+                                    <td>@viewModel.NewObject.SerialNumber</td>
                                 </tr>
                             }
                         </table>
                     </div>
                     <div class="col-md-6 text-center">
                         <h6>QR-Code Preview:</h6>
-                        @if (!string.IsNullOrEmpty(qrCodeBase64))
+                        @if (!string.IsNullOrEmpty(viewModel.QRCodeBase64))
                         {
-                            <img src="@qrCodeBase64" alt="QR Code Preview" class="img-fluid mb-3" style="max-width: 250px;" />
+                            <img src="@viewModel.QRCodeBase64" alt="QR Code Preview" class="img-fluid mb-3" style="max-width: 250px;" />
                             <div class="d-flex gap-2 justify-content-center mb-2">
                                 <button class="btn btn-sm btn-outline-primary" @onclick="DownloadPreviewQRCode">
                                     <i class="bi bi-download"></i> Download Preview
@@ -139,8 +143,8 @@
                     <button class="btn btn-secondary" @onclick="BackToForm">
                         <i class="bi bi-arrow-left"></i> Terug naar formulier
                     </button>
-                    <button class="btn btn-success btn-lg" @onclick="ConfirmAndSave" disabled="@isSaving">
-                        @if (isSaving)
+                    <button class="btn btn-success btn-lg" @onclick="ConfirmAndSave" disabled="@viewModel.IsSaving">
+                        @if (viewModel.IsSaving)
                         {
                             <span class="spinner-border spinner-border-sm me-2"></span>
                         }
@@ -153,7 +157,7 @@
     else
     {
         <!-- Formulier -->
-        <EditForm Model="@newObject" OnValidSubmit="ShowPreview">
+        <EditForm Model="@viewModel.NewObject" OnValidSubmit="ShowPreview">
             <DataAnnotationsValidator />
             <ValidationSummary />
 
@@ -161,9 +165,9 @@
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label class="form-label">Bedrijf *</label>
-                        <InputSelect class="form-select" @bind-Value="newObject.CompanyID">
+                        <InputSelect class="form-select" @bind-Value="viewModel.NewObject.CompanyID">
                             <option value="0">-- Selecteer bedrijf --</option>
-                            @foreach (var company in companies)
+                            @foreach (var company in viewModel.Companies)
                             {
                                 <option value="@company.CompanyID">@company.Name</option>
                             }
@@ -172,57 +176,57 @@
 
                     <div class="mb-3">
                         <label class="form-label">Object Code *</label>
-                        <InputText class="form-control" @bind-Value="newObject.ObjectCode" placeholder="Bijv. OBJ-LIFT-001" />
+                        <InputText class="form-control" @bind-Value="viewModel.NewObject.ObjectCode" placeholder="Bijv. OBJ-LIFT-001" />
                         <small class="text-muted">Unieke code voor dit object</small>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Naam *</label>
-                        <InputText class="form-control" @bind-Value="newObject.Name" placeholder="Bijv. Personenlift Vleugel A" />
+                        <InputText class="form-control" @bind-Value="viewModel.NewObject.Name" placeholder="Bijv. Personenlift Vleugel A" />
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Locatie *</label>
-                        <InputText class="form-control" @bind-Value="newObject.Location" placeholder="Bijv. Vleugel A, begane grond" />
+                        <InputText class="form-control" @bind-Value="viewModel.NewObject.Location" placeholder="Bijv. Vleugel A, begane grond" />
                     </div>
                 </div>
 
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label class="form-label">Merk</label>
-                        <InputText class="form-control" @bind-Value="newObject.Brand" placeholder="Bijv. Schindler" />
+                        <InputText class="form-control" @bind-Value="viewModel.NewObject.Brand" placeholder="Bijv. Schindler" />
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Model</label>
-                        <InputText class="form-control" @bind-Value="newObject.Model" placeholder="Bijv. 3300 AP" />
+                        <InputText class="form-control" @bind-Value="viewModel.NewObject.Model" placeholder="Bijv. 3300 AP" />
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Serienummer</label>
-                        <InputText class="form-control" @bind-Value="newObject.SerialNumber" placeholder="Bijv. SCH-2019-4782" />
+                        <InputText class="form-control" @bind-Value="viewModel.NewObject.SerialNumber" placeholder="Bijv. SCH-2019-4782" />
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Installatiedatum</label>
-                        <InputDate class="form-control" @bind-Value="newObject.InstallationDate" />
+                        <InputDate class="form-control" @bind-Value="viewModel.NewObject.InstallationDate" />
                     </div>
                 </div>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Beschrijving</label>
-                <InputTextArea class="form-control" @bind-Value="newObject.Description" rows="3" placeholder="Beschrijving van het object..." />
+                <InputTextArea class="form-control" @bind-Value="viewModel.NewObject.Description" rows="3" placeholder="Beschrijving van het object..." />
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Volgende onderhoud</label>
-                <InputDate class="form-control" @bind-Value="newObject.NextMaintenance" />
+                <InputDate class="form-control" @bind-Value="viewModel.NewObject.NextMaintenance" />
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Aangemaakt door *</label>
-                <InputText class="form-control" @bind-Value="newObject.CreatedBy" placeholder="Jouw naam" />
+                <InputText class="form-control" @bind-Value="viewModel.NewObject.CreatedBy" placeholder="Jouw naam" />
             </div>
 
             <div class="d-flex gap-2">
@@ -236,193 +240,104 @@
 </div>
 
 @code {
-    private CreateObjectDto newObject = new();
-    private ObjectDto? createdObject = null;
-    private List<CompanyDto> companies = new();
-
-    private bool isLoading = true;
-    private bool isSaving = false;
-    private bool objectCreated = false;
-    private bool showPreview = false;
-    private string errorMessage = string.Empty;
-    private string qrCodeBase64 = string.Empty;
+    private CreateObjectViewModel viewModel = new();
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            companies = await TicketApiService.GetAllCompaniesAsync();
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Fout bij laden van data: {ex.Message}";
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        viewModel.OnStateChanged += StateHasChanged;
+        await viewModel.LoadCompaniesAsync(() => TicketApiService.GetAllCompaniesAsync());
     }
 
     private void ShowPreview()
     {
-        // Genereer een preview QR-code (met tijdelijke ID)
-        GeneratePreviewQRCode();
-        showPreview = true;
-        errorMessage = string.Empty;
+        try
+        {
+            var qrCode = QRService.GeneratePreviewQRCode(viewModel.NewObject.ObjectCode);
+            viewModel.SetQRCode(qrCode);
+            viewModel.ShowPreviewMode();
+        }
+        catch (Exception ex)
+        {
+            viewModel.SetError($"Fout bij genereren preview: {ex.Message}");
+        }
     }
 
     private void BackToForm()
     {
-        showPreview = false;
-        qrCodeBase64 = string.Empty;
+        viewModel.BackToForm();
     }
 
     private async Task ConfirmAndSave()
     {
-        isSaving = true;
-        errorMessage = string.Empty;
-
-        try
+        await viewModel.SaveObjectAsync(async () => 
         {
-            // NU pas wordt het object opgeslagen in de database
-            createdObject = await ObjectApiService.CreateObjectAsync(newObject);
-
-            if (createdObject != null)
+            var result = await ObjectApiService.CreateObjectAsync(viewModel.NewObject);
+            
+            if (result != null)
             {
-                // Genereer de échte QR-code met het echte ObjectID uit de database
-                GenerateQRCode(createdObject.ObjectID);
-                objectCreated = true;
-                showPreview = false;
+                var qrCode = QRService.GenerateObjectQRCode(result.ObjectID);
+                viewModel.SetQRCode(qrCode);
             }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Fout bij aanmaken object: {ex.Message}";
-        }
-        finally
-        {
-            isSaving = false;
-        }
-    }
-
-    private void GeneratePreviewQRCode()
-    {
-        try
-        {
-            // Preview QR-code met tijdelijke data
-            string qrData = $"PREVIEW:{newObject.ObjectCode}";
-
-            using (QRCodeGenerator qrGenerator = new QRCodeGenerator())
-            using (QRCodeData qrCodeData = qrGenerator.CreateQrCode(qrData, QRCodeGenerator.ECCLevel.Q))
-            using (PngByteQRCode qrCode = new PngByteQRCode(qrCodeData))
-            {
-                byte[] qrCodeImage = qrCode.GetGraphic(20);
-                qrCodeBase64 = $"data:image/png;base64,{Convert.ToBase64String(qrCodeImage)}";
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Fout bij genereren preview QR-code: {ex.Message}";
-        }
-    }
-
-    private void GenerateQRCode(int objectId)
-    {
-        try
-        {
-            // Échte QR-code met ObjectID uit database
-            string qrData = $"OBJECT:{objectId}";
-
-            using (QRCodeGenerator qrGenerator = new QRCodeGenerator())
-            using (QRCodeData qrCodeData = qrGenerator.CreateQrCode(qrData, QRCodeGenerator.ECCLevel.Q))
-            using (PngByteQRCode qrCode = new PngByteQRCode(qrCodeData))
-            {
-                byte[] qrCodeImage = qrCode.GetGraphic(20);
-                qrCodeBase64 = $"data:image/png;base64,{Convert.ToBase64String(qrCodeImage)}";
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Fout bij genereren QR-code: {ex.Message}";
-        }
-    }
-
-    private string GetCompanyName(int companyId)
-    {
-        var company = companies.FirstOrDefault(c => c.CompanyID == companyId);
-        return company?.Name ?? "Onbekend";
+            
+            return result;
+        });
     }
 
     private async Task DownloadQRCode()
     {
-        if (string.IsNullOrEmpty(qrCodeBase64))
-            return;
-
         try
         {
-            string base64Data = qrCodeBase64.Split(',')[1];
-            await JSRuntime.InvokeVoidAsync("downloadQRCode", base64Data, $"QRCode-{createdObject?.ObjectCode}.png");
+            string base64Data = QRService.GetBase64DataFromDataUrl(viewModel.QRCodeBase64);
+            await JSRuntime.InvokeVoidAsync("downloadQRCode", base64Data, 
+                $"QRCode-{viewModel.CreatedObject?.ObjectCode}.png");
         }
         catch (Exception ex)
         {
-            errorMessage = $"Fout bij downloaden QR-code: {ex.Message}";
+            viewModel.SetError($"Fout bij downloaden: {ex.Message}");
         }
     }
 
     private async Task DownloadPreviewQRCode()
     {
-        if (string.IsNullOrEmpty(qrCodeBase64))
-            return;
-
         try
         {
-            string base64Data = qrCodeBase64.Split(',')[1];
-            await JSRuntime.InvokeVoidAsync("downloadQRCode", base64Data, $"PREVIEW-{newObject.ObjectCode}.png");
+            string base64Data = QRService.GetBase64DataFromDataUrl(viewModel.QRCodeBase64);
+            await JSRuntime.InvokeVoidAsync("downloadQRCode", base64Data, 
+                $"PREVIEW-{viewModel.NewObject.ObjectCode}.png");
         }
         catch (Exception ex)
         {
-            errorMessage = $"Fout bij downloaden preview QR-code: {ex.Message}";
+            viewModel.SetError($"Fout bij downloaden preview: {ex.Message}");
         }
     }
 
     private async Task PrintQRCode()
     {
-        if (string.IsNullOrEmpty(qrCodeBase64))
-            return;
-
         try
         {
-            await JSRuntime.InvokeVoidAsync("printQRCode", qrCodeBase64);
+            await JSRuntime.InvokeVoidAsync("printQRCode", viewModel.QRCodeBase64);
         }
         catch (Exception ex)
         {
-            errorMessage = $"Fout bij printen QR-code: {ex.Message}";
+            viewModel.SetError($"Fout bij printen: {ex.Message}");
         }
     }
 
     private async Task PrintPreviewQRCode()
     {
-        if (string.IsNullOrEmpty(qrCodeBase64))
-            return;
-
         try
         {
-            await JSRuntime.InvokeVoidAsync("printQRCode", qrCodeBase64);
+            await JSRuntime.InvokeVoidAsync("printQRCode", viewModel.QRCodeBase64);
         }
         catch (Exception ex)
         {
-            errorMessage = $"Fout bij printen preview QR-code: {ex.Message}";
+            viewModel.SetError($"Fout bij printen preview: {ex.Message}");
         }
     }
 
     private void CreateAnother()
     {
-        newObject = new CreateObjectDto();
-        createdObject = null;
-        objectCreated = false;
-        showPreview = false;
-        qrCodeBase64 = string.Empty;
-        errorMessage = string.Empty;
+        viewModel.ResetForm();
     }
 
     private void GoToObjectList()
@@ -433,5 +348,10 @@
     private void Cancel()
     {
         Navigation.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        viewModel.OnStateChanged -= StateHasChanged;
     }
 }

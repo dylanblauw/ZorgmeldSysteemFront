@@ -3,8 +3,12 @@
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Ticket
 @using ZorgmeldSysteem.Blazor.Models.Enums
 @using ZorgmeldSysteem.Blazor.Services
-@inject TicketApiService TicketApiService
+@using ZorgmeldSysteem.Blazor.Services.Helpers
+@using ZorgmeldSysteem.Blazor.ViewModels
+@inject Services.Api.TicketApiService TicketApiService
+@inject TicketDisplayService DisplayService
 @inject NavigationManager Navigation
+@implements IDisposable
 @rendermode InteractiveServer
 
 <PageTitle>Tickets Overzicht</PageTitle>
@@ -17,14 +21,14 @@
         </button>
     </div>
 
-    @if (!string.IsNullOrEmpty(errorMessage))
+    @if (!string.IsNullOrEmpty(viewModel.ErrorMessage))
     {
         <div class="alert alert-danger" role="alert">
-            @errorMessage
+            @viewModel.ErrorMessage
         </div>
     }
 
-    @if (isLoading)
+    @if (viewModel.IsLoading)
     {
         <div class="text-center my-5">
             <div class="spinner-border text-primary" role="status">
@@ -42,55 +46,55 @@
                     <div class="col-md-3">
                         <label class="form-label">Zoeken</label>
                         <input type="text" class="form-control"
-                               @bind="searchQuery"
+                               @bind="viewModel.SearchQuery"
                                @bind:event="oninput"
                                placeholder="Zoek op code, beschrijving of bedrijf..." />
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Status</label>
-                        <select class="form-select" @bind="filterStatus" @bind:event="onchange">
+                        <select class="form-select" @bind="viewModel.FilterStatus" @bind:event="onchange">
                             <option value="">Alle statussen</option>
                             @foreach (TicketStatus status in Enum.GetValues(typeof(TicketStatus)))
                             {
-                                <option value="@((int)status)">@GetStatusDisplayName(status)</option>
+                                <option value="@((int)status)">@DisplayService.GetStatusDisplayName(status)</option>
                             }
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Prioriteit</label>
-                        <select class="form-select" @bind="filterPriority" @bind:event="onchange">
+                        <select class="form-select" @bind="viewModel.FilterPriority" @bind:event="onchange">
                             <option value="">Alle prioriteiten</option>
                             @foreach (Priority priority in Enum.GetValues(typeof(Priority)))
                             {
-                                <option value="@((int)priority)">@GetPriorityDisplayName(priority)</option>
+                                <option value="@((int)priority)">@DisplayService.GetPriorityDisplayName(priority)</option>
                             }
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">&nbsp;</label>
-                        <button class="btn btn-secondary w-100" @onclick="ClearFilters">
+                        <button class="btn btn-secondary w-100" @onclick="viewModel.ClearFilters">
                             <i class="bi bi-x-circle"></i> Reset Filters
                         </button>
                     </div>
                 </div>
 
                 <!-- Actieve filters tonen -->
-                @if (HasActiveFilters)
+                @if (viewModel.HasActiveFilters())
                 {
                     <div class="mt-3">
                         <small class="text-muted">
                             Actieve filters:
-                            @if (!string.IsNullOrWhiteSpace(searchQuery))
+                            @if (!string.IsNullOrWhiteSpace(viewModel.SearchQuery))
                             {
-                                <span class="badge bg-info me-1">Zoekterm: @searchQuery</span>
+                                <span class="badge bg-info me-1">Zoekterm: @viewModel.SearchQuery</span>
                             }
-                            @if (!string.IsNullOrWhiteSpace(filterStatus))
+                            @if (!string.IsNullOrWhiteSpace(viewModel.FilterStatus))
                             {
-                                <span class="badge bg-info me-1">Status: @GetStatusDisplayName((TicketStatus)int.Parse(filterStatus))</span>
+                                <span class="badge bg-info me-1">Status: @DisplayService.GetStatusDisplayName((TicketStatus)int.Parse(viewModel.FilterStatus))</span>
                             }
-                            @if (!string.IsNullOrWhiteSpace(filterPriority))
+                            @if (!string.IsNullOrWhiteSpace(viewModel.FilterPriority))
                             {
-                                <span class="badge bg-info me-1">Prioriteit: @GetPriorityDisplayName((Priority)int.Parse(filterPriority))</span>
+                                <span class="badge bg-info me-1">Prioriteit: @DisplayService.GetPriorityDisplayName((Priority)int.Parse(viewModel.FilterPriority))</span>
                             }
                         </small>
                     </div>
@@ -103,7 +107,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <p class="text-muted mb-0">
-                        <i class="bi bi-filter"></i> @FilteredTickets.Count() van @tickets.Count tickets
+                        <i class="bi bi-filter"></i> @viewModel.GetFilteredTickets().Count() van @viewModel.AllTickets.Count tickets
                     </p>
                     <div>
                         <label class="me-2">Items per pagina:</label>
@@ -117,11 +121,11 @@
                     </div>
                 </div>
 
-                <QuickGrid Items="@FilteredTickets" Pagination="@pagination" Class="table">
+                <QuickGrid Items="@viewModel.GetFilteredTickets()" Pagination="@pagination" Class="table">
                     <PropertyColumn Property="@(t => t.TicketCode)" Title="Ticket Code" Sortable="true">
                         <ColumnOptions>
                             <div class="search-box">
-                                <input type="text" @bind="codeFilter" @bind:event="oninput"
+                                <input type="text" @bind="viewModel.CodeFilter" @bind:event="oninput"
                                        placeholder="Filter code..." class="form-control form-control-sm" />
                             </div>
                         </ColumnOptions>
@@ -133,16 +137,16 @@
 
                     <TemplateColumn Title="Status" Sortable="true"
                                     SortBy="@(GridSort<TicketDto>.ByAscending(t => t.Status))">
-                        <span class="badge @GetStatusBadgeClass(context.Status)">
-                            @GetStatusDisplayName(context.Status)
+                        <span class="badge @DisplayService.GetStatusBadgeClass(context.Status)">
+                            @DisplayService.GetStatusDisplayName(context.Status)
                         </span>
                     </TemplateColumn>
 
                     <TemplateColumn Title="Prioriteit" Sortable="true"
                                     SortBy="@(GridSort<TicketDto>.ByAscending(t => t.Priority))">
-                        <span class="badge @GetPriorityBadgeClass(context.Priority)">
-                            <i class="bi @GetPriorityIcon(context.Priority)"></i>
-                            @GetPriorityDisplayName(context.Priority)
+                        <span class="badge @DisplayService.GetPriorityBadgeClass(context.Priority)">
+                            <i class="bi @DisplayService.GetPriorityIcon(context.Priority)"></i>
+                            @DisplayService.GetPriorityDisplayName(context.Priority)
                         </span>
                     </TemplateColumn>
 
@@ -176,7 +180,6 @@
         min-width: 100px;
     }
 
-    /* Custom styling voor de QuickGrid */
     .quickgrid {
         font-size: 0.95rem;
     }
@@ -193,87 +196,17 @@
 </style>
 
 @code {
-    private List<TicketDto> tickets = new();
-    private bool isLoading = true;
-    private string errorMessage = string.Empty;
+    // Alleen nog state die echt bij de UI hoort
+    private TicketsViewModel viewModel = new();
     private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
-
-    // Filters
-    private string searchQuery = string.Empty;
-    private string filterStatus = string.Empty;
-    private string filterPriority = string.Empty;
-    private string codeFilter = string.Empty;
-
-    private bool HasActiveFilters =>
-        !string.IsNullOrWhiteSpace(searchQuery) ||
-        !string.IsNullOrWhiteSpace(filterStatus) ||
-        !string.IsNullOrWhiteSpace(filterPriority) ||
-        !string.IsNullOrWhiteSpace(codeFilter);
-
-    private IQueryable<TicketDto> FilteredTickets
-    {
-        get
-        {
-            IQueryable<TicketDto> query = tickets.AsQueryable();
-
-            // Algemene zoekfilter
-            if (!string.IsNullOrWhiteSpace(searchQuery))
-            {
-                query = query.Where(t =>
-                    t.TicketCode.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
-                    t.Description.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
-                    t.CompanyName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
-                );
-            }
-
-            // Code filter (column specific)
-            if (!string.IsNullOrWhiteSpace(codeFilter))
-            {
-                query = query.Where(t =>
-                    t.TicketCode.Contains(codeFilter, StringComparison.OrdinalIgnoreCase));
-            }
-
-            // Status filter
-            if (!string.IsNullOrWhiteSpace(filterStatus))
-            {
-                TicketStatus status = (TicketStatus)int.Parse(filterStatus);
-                query = query.Where(t => t.Status == status);
-            }
-
-            // Prioriteit filter
-            if (!string.IsNullOrWhiteSpace(filterPriority))
-            {
-                Priority priority = (Priority)int.Parse(filterPriority);
-                query = query.Where(t => t.Priority == priority);
-            }
-
-            return query;
-        }
-    }
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            tickets = await TicketApiService.GetAllTicketsAsync();
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Fout bij laden van tickets: {ex.Message}";
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
-
-    private void ClearFilters()
-    {
-        searchQuery = string.Empty;
-        filterStatus = string.Empty;
-        filterPriority = string.Empty;
-        codeFilter = string.Empty;
-        pagination.ItemsPerPage = 10;
+        // Subscribe op state changes van de ViewModel
+        viewModel.OnStateChanged += StateHasChanged;
+        
+        // Laad de tickets via de ViewModel
+        await viewModel.LoadTicketsAsync(() => TicketApiService.GetAllTicketsAsync());
     }
 
     private void ViewTicket(int ticketId)
@@ -288,66 +221,12 @@
 
     private void GoToCreateTicket()
     {
-        // Probeer zonder leading slash
         Navigation.NavigateTo("ticket/create");
-
-        // Als bovenstaande niet werkt, probeer dan:
-        // Navigation.NavigateTo("/ticket/create", false);
-        // Navigation.NavigateTo("/ticket/create", true); // force load
-        // Navigation.NavigateTo("Tickets/Create"); // andere route naam
     }
 
-    // Helper methodes voor display namen
-    private string GetStatusDisplayName(TicketStatus status) => status switch
+    public void Dispose()
     {
-        TicketStatus.Open => "Open",
-        TicketStatus.Assigned => "Toegewezen",
-        TicketStatus.InProgress => "In Behandeling",
-        TicketStatus.Solved => "Opgelost",
-        TicketStatus.Closed => "Gesloten",
-        TicketStatus.Cancelled => "Geannuleerd",
-        _ => status.ToString()
-    };
-
-    private string GetPriorityDisplayName(Priority priority) => priority switch
-    {
-        Priority.Low => "Laag",
-        Priority.Normal => "Normaal",
-        Priority.High => "Hoog",
-        Priority.Urgent => "Urgent",
-        Priority.Critical => "Kritiek",
-        _ => priority.ToString()
-    };
-
-    // Helper methodes voor styling
-    private string GetStatusBadgeClass(TicketStatus status) => status switch
-    {
-        TicketStatus.Open => "bg-warning text-dark",
-        TicketStatus.Assigned => "bg-info",
-        TicketStatus.InProgress => "bg-primary",
-        TicketStatus.Solved => "bg-success",
-        TicketStatus.Closed => "bg-secondary",
-        TicketStatus.Cancelled => "bg-danger",
-        _ => "bg-secondary"
-    };
-
-    private string GetPriorityBadgeClass(Priority priority) => priority switch
-    {
-        Priority.Low => "bg-secondary",
-        Priority.Normal => "bg-info",
-        Priority.High => "bg-warning text-dark",
-        Priority.Urgent => "bg-danger",
-        Priority.Critical => "bg-dark",
-        _ => "bg-secondary"
-    };
-
-    private string GetPriorityIcon(Priority priority) => priority switch
-    {
-        Priority.Low => "bi-arrow-down",
-        Priority.Normal => "bi-dash",
-        Priority.High => "bi-arrow-up",
-        Priority.Urgent => "bi-exclamation-triangle",
-        Priority.Critical => "bi-exclamation-octagon",
-        _ => "bi-dash"
-    };
+        // Unsubscribe om memory leaks te voorkomen
+        viewModel.OnStateChanged -= StateHasChanged;
+    }
 }

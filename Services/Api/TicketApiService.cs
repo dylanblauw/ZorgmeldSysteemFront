@@ -4,7 +4,7 @@ using ZorgmeldSysteem.Blazor.Models.DTOs.Company;
 using ZorgmeldSysteem.Blazor.Models.DTOs.Mechanic;
 using ZorgmeldSysteem.Blazor.Models.DTOs.Object;
 
-namespace ZorgmeldSysteem.Blazor.Services
+namespace ZorgmeldSysteem.Blazor.Services.Api
 {
     public class TicketApiService
     {
