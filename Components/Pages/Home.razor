@@ -5,15 +5,20 @@
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<PageTitle>Dashboard - Zorgmeld Systeem</PageTitle>
+<PageTitle>Dashboard - Fixility</PageTitle>
 
 <div class="container mt-4">
-    <h1 class="mb-4"></h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="display-4">Dashboard</h1>
+        <button class="btn btn-primary btn-lg" @onclick="GoToCreateTicket">
+            <i class="bi bi-plus-circle"></i> Nieuw Ticket
+        </button>
+    </div>
 
     @if (isLoading)
     {
         <div class="text-center my-5">
-            <div class="spinner-border text-primary" role="status">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
                 <span class="visually-hidden">Laden...</span>
             </div>
             <p class="mt-3">Statistieken laden...</p>
@@ -22,141 +27,185 @@
     else if (!string.IsNullOrEmpty(errorMessage))
     {
         <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
             <strong>Fout:</strong> @errorMessage
         </div>
     }
     else
     {
-       
+      
 
-        <!-- Snelle Acties -->
+        <h4 class="mb-3 mt-5">Snelle Acties</h4>
 
-        <div class="row">
+        <!-- Snelle Acties - Tickets -->
+        <div class="row mb-3">
             <div class="col-md-6 mb-3">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="bi bi-list-nested display-1 text-primary mb-3"></i>
-                        <h5 class="card-title">Nieuw Ticket</h5>
-                        <p class="card-text">Maak een nieuwe zorgmelding aan</p>
-                        <button class="btn btn-primary" @onclick="GoToCreateTicket">
-                            Aanmaken
-                        </button>
+                <div class="card h-100 shadow-sm hover-card">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="bi bi-plus-square-fill display-3 text-primary me-3"></i>
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">Nieuw Ticket</h5>
+                            <p class="card-text text-muted mb-2">Maak een nieuwe zorgmelding aan</p>
+                            <button class="btn btn-primary" @onclick="GoToCreateTicket">
+                                <i class="bi bi-plus-circle"></i> Aanmaken
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-6 mb-3">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="bi bi-list-ul display-1 text-primary mb-3"></i>
-                        <h5 class="card-title">Alle Tickets</h5>
-                        <p class="card-text">Bekijk en beheer alle tickets</p>
-                        <button class="btn btn-outline-primary" @onclick="GoToTicketList">
-                            Bekijken
-                        </button>
-                    </div>
-                </div>
-            </div>
-         </div>
-        <div class="row mt-3">
-
-            <div class="col-md-6 mb-3">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="bi bi-person-gear display-1 text-success mb-3"></i>
-                        <h5 class="card-title">Monteurs</h5>
-                        <p class="card-text">Beheer monteurs en toewijzingen</p>
-                        <button class="btn btn-outline-success" @onclick="GoToMechanics">
-                            Beheren
-                        </button>
-                    </div>
-                </div>
-            </div>
-        
-
-
-            <div class="col-md-6 mb-3">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="bi bi-building display-1 text-info mb-3"></i>
-                        <h5 class="card-title">Bedrijven</h5>
-                        <p class="card-text">Beheer bedrijven en contacten</p>
-                        <button class="btn btn-outline-info" @onclick="GoToCompanies">
-                            Beheren
-                        </button>
+                <div class="card h-100 shadow-sm hover-card">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="bi bi-list-ul display-3 text-primary me-3"></i>
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">Alle Tickets</h5>
+                            <p class="card-text text-muted mb-2">Bekijk en beheer alle tickets</p>
+                            <button class="btn btn-outline-primary" @onclick="GoToTicketList">
+                                <i class="bi bi-eye"></i> Bekijken
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="row mt-3">
+
+        <!-- Snelle Acties - Monteurs & Bedrijven -->
+        <div class="row mb-3">
             <div class="col-md-6 mb-3">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="bi bi-plus-square display-1 text-secondary mb-3"></i>
-                        <h5 class="card-title">Nieuw Object</h5>
-                        <p class="card-text">Voeg objecten toe</p>
-                        <button class="btn btn-secondary" @onclick="GoToCreateObjects">
-                            Beheren
-                        </button>
+                <div class="card h-100 shadow-sm hover-card">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="bi bi-person-gear display-3 text-success me-3"></i>
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">Monteurs</h5>
+                            <p class="card-text text-muted mb-2">Beheer monteurs en toewijzingen</p>
+                            <button class="btn btn-outline-success" @onclick="GoToMechanics">
+                                <i class="bi bi-people"></i> Beheren
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-
             <div class="col-md-6 mb-3">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="bi bi-box display-1 text-secondary mb-3"></i>
-                        <h5 class="card-title">Alle Objecten</h5>
-                        <p class="card-text">Beheer objecten en onderhoud</p>
-                        <button class="btn btn-outline-secondary" @onclick="GoToObjects">
-                            Beheren
-                        </button>
+                <div class="card h-100 shadow-sm hover-card">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="bi bi-building display-3 text-info me-3"></i>
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">Bedrijven</h5>
+                            <p class="card-text text-muted mb-2">Beheer bedrijven en contacten</p>
+                            <button class="btn btn-outline-info" @onclick="GoToCompanies">
+                                <i class="bi bi-building-gear"></i> Beheren
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        
+
+        <!-- Snelle Acties - Objecten -->
+        <div class="row mb-3">
+            <div class="col-md-6 mb-3">
+                <div class="card h-100 shadow-sm hover-card">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="bi bi-plus-square display-3 text-secondary me-3"></i>
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">Nieuw Object</h5>
+                            <p class="card-text text-muted mb-2">Voeg objecten toe aan het systeem</p>
+                            <button class="btn btn-secondary" @onclick="GoToCreateObjects">
+                                <i class="bi bi-plus-circle"></i> Aanmaken
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <div class="card h-100 shadow-sm hover-card">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="bi bi-box-seam display-3 text-secondary me-3"></i>
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">Alle Objecten</h5>
+                            <p class="card-text text-muted mb-2">Beheer objecten en onderhoud</p>
+                            <button class="btn btn-outline-secondary" @onclick="GoToObjects">
+                                <i class="bi bi-box"></i> Beheren
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Statistieken Cards -->
         <div class="row mb-4">
             <div class="col-md-3 mb-3">
-                <div class="card text-white bg-danger">
-                    <div class="card-body">
+                <div class="card text-white bg-danger h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-exclamation-circle display-4 mb-2"></i>
                         <h5 class="card-title">Open Tickets</h5>
-                        <h2 class="card-text display-4">@openTicketsCount</h2>
+                        <h2 class="display-3 fw-bold">@openTicketsCount</h2>
+                        <small>Wachten op actie</small>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-3 mb-3">
-                <div class="card text-white bg-primary">
-                    <div class="card-body">
+                <div class="card text-white bg-primary h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-ticket-perforated display-4 mb-2"></i>
                         <h5 class="card-title">Totaal Tickets</h5>
-                        <h2 class="card-text display-4">@totalTicketsCount</h2>
+                        <h2 class="display-3 fw-bold">@totalTicketsCount</h2>
+                        <small>Alle tickets</small>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-3 mb-3">
-                <div class="card text-white bg-success">
-                    <div class="card-body">
+                <div class="card text-white bg-success h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-person-gear display-4 mb-2"></i>
                         <h5 class="card-title">Actieve Monteurs</h5>
-                        <h2 class="card-text display-4">@activeMechanicsCount</h2>
+                        <h2 class="display-3 fw-bold">@activeMechanicsCount</h2>
+                        <small>Beschikbaar</small>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-3 mb-3">
-                <div class="card text-white bg-info">
-                    <div class="card-body">
+                <div class="card text-white bg-info h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-building display-4 mb-2"></i>
                         <h5 class="card-title">Bedrijven</h5>
-                        <h2 class="card-text display-4">@totalCompaniesCount</h2>
+                        <h2 class="display-3 fw-bold">@totalCompaniesCount</h2>
+                        <small>Geregistreerd</small>
                     </div>
                 </div>
             </div>
         </div>
     }
 </div>
+
+<style>
+    .hover-card {
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        border-color: rgba(0, 0, 0, 0.2);
+    }
+
+    .display-4 {
+        line-height: 1;
+    }
+
+    .card-body i.display-3,
+    .card-body i.display-4 {
+        opacity: 0.9;
+    }
+</style>
 
 @code {
     private int openTicketsCount = 0;

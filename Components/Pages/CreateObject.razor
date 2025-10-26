@@ -4,6 +4,7 @@
 @using ZorgmeldSysteem.Blazor.Services.Api
 @using ZorgmeldSysteem.Blazor.Services.Business
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Company
+@using ZorgmeldSysteem.Blazor.Models.Enums
 @inject ObjectApiService ObjectApiService
 @inject TicketApiService TicketApiService
 @inject QRCodeService QRService
@@ -188,6 +189,28 @@
                         <label class="form-label">Locatie *</label>
                         <InputText class="form-control" @bind-Value="viewModel.NewObject.Location" placeholder="Bijv. Vleugel A, begane grond" />
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Standaard Prioriteit *</label>
+                        <InputSelect @bind-Value="viewModel.NewObject.DefaultPriority" class="form-select">
+                            @foreach (Priority p in Enum.GetValues(typeof(Priority)))
+                            {
+                                <option value="@p">@p</option>
+                            }
+                        </InputSelect>
+                        <small class="text-muted">Voor nieuwe tickets van dit object</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Standaard Reactietijd *</label>
+                        <InputSelect @bind-Value="viewModel.NewObject.DefaultReactionTime" class="form-select">
+                            @foreach (ReactionTime rt in Enum.GetValues(typeof(ReactionTime)))
+                            {
+                                <option value="@rt">@rt</option>
+                            }
+                        </InputSelect>
+                    </div>
+
                 </div>
 
                 <div class="col-md-6">
@@ -234,6 +257,7 @@
                 </button>
                 <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuleren</button>
             </div>
+
         </EditForm>
     }
 </div>

@@ -1,0 +1,341 @@
+﻿@page "/mechanics"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Mechanic
+@using ZorgmeldSysteem.Blazor.Models.Enums
+@using ZorgmeldSysteem.Blazor.Services.Api
+@using ZorgmeldSysteem.Blazor.Services.Helpers
+@inject MechanicApiService MechanicApiService
+@inject MechanicDisplayService DisplayService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Monteurs Overzicht</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Monteurs Overzicht</h3>
+        <button class="btn btn-primary" @onclick="GoToCreateMechanic">
+            <i class="bi bi-plus-circle"></i> Nieuwe Monteur
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            @errorMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @successMessage
+            <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Laden...</span>
+            </div>
+            <p class="mt-3">Monteurs laden...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Filter sectie -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Zoeken</label>
+                        <input type="text" class="form-control"
+                               @bind="searchQuery"
+                               @bind:event="oninput"
+                               placeholder="Zoek op naam, email of telefoonnummer..." />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Type</label>
+                        <select class="form-select" @bind="filterType" @bind:event="onchange">
+                            <option value="">Alle types</option>
+                            @foreach (MechanicType type in Enum.GetValues(typeof(MechanicType)))
+                            {
+                                <option value="@((int)type)">@DisplayService.GetMechanicTypeDisplayName(type)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" @bind="filterActive" @bind:event="onchange">
+                            <option value="">Alle</option>
+                            <option value="true">Actief</option>
+                            <option value="false">Inactief</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-secondary w-100" @onclick="ClearFilters">
+                            <i class="bi bi-x-circle"></i> Reset Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- QuickGrid -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-filter"></i> @GetFilteredMechanics().Count() van @allMechanics.Count monteurs
+                    </p>
+                    <div>
+                        <label class="me-2">Items per pagina:</label>
+                        <select class="form-select form-select-sm d-inline-block" style="width: auto;"
+                                @bind="@pagination.ItemsPerPage" @bind:event="onchange">
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                </div>
+
+                <QuickGrid Items="@GetFilteredMechanics()" Pagination="@pagination" Class="table table-hover">
+                    <PropertyColumn Property="@(m => m.Name)" Title="Naam" Sortable="true" />
+
+                    <TemplateColumn Title="Type" Sortable="true"
+                                    SortBy="@(GridSort<MechanicDto>.ByAscending(m => m.Type))">
+                        <span class="badge @DisplayService.GetMechanicTypeBadgeClass(context.Type)">
+                            <i class="bi @DisplayService.GetMechanicTypeIcon(context.Type)"></i>
+                            @DisplayService.GetMechanicTypeDisplayName(context.Type)
+                        </span>
+                    </TemplateColumn>
+
+                    <PropertyColumn Property="@(m => m.Email)" Title="Email" Sortable="true" />
+
+                    <PropertyColumn Property="@(m => m.Phonenumber)" Title="Telefoonnummer" Sortable="true" />
+
+                    <TemplateColumn Title="Bedrijf" Sortable="true"
+                                    SortBy="@(GridSort<MechanicDto>.ByAscending(m => m.CompanyName ?? ""))">
+                        @(context.CompanyName ?? "-")
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Status" Sortable="true"
+                                    SortBy="@(GridSort<MechanicDto>.ByDescending(m => m.IsActive))">
+                        @if (context.IsActive)
+                        {
+                            <span class="badge bg-success">Actief</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactief</span>
+                        }
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Acties">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-primary"
+                                    @onclick="() => ViewMechanic(context.MechanicID)"
+                                    title="Bekijken">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-warning"
+                                    @onclick="() => EditMechanic(context.MechanicID)"
+                                    title="Bewerken">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-outline-danger"
+                                    @onclick="() => ShowDeleteConfirmation(context)"
+                                    title="Verwijderen">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </TemplateColumn>
+                </QuickGrid>
+
+                <Paginator State="@pagination" />
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Delete Confirmation Modal -->
+@if (mechanicToDelete != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Monteur Verwijderen</h5>
+                    <button type="button" class="btn-close" @onclick="CancelDelete"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Weet je zeker dat je <strong>@mechanicToDelete.Name</strong> wilt verwijderen?</p>
+                    <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> Deze actie kan niet ongedaan worden gemaakt.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelDelete">Annuleren</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@isDeleting">
+                        @if (isDeleting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Verwijderen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .quickgrid {
+        font-size: 0.95rem;
+    }
+
+    .quickgrid th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+</style>
+
+@code {
+    private List<MechanicDto> allMechanics = new();
+    private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
+
+    private string searchQuery = string.Empty;
+    private string filterType = string.Empty;
+    private string filterActive = string.Empty;
+
+    private bool isLoading = true;
+    private bool isDeleting = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    private MechanicDto? mechanicToDelete = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMechanics();
+    }
+
+    private async Task LoadMechanics()
+    {
+        try
+        {
+            isLoading = true;
+            allMechanics = await MechanicApiService.GetAllMechanicsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij laden van monteurs: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private IQueryable<MechanicDto> GetFilteredMechanics()
+    {
+        var filtered = allMechanics.AsQueryable();
+
+        // Zoeken
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            filtered = filtered.Where(m =>
+                m.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                m.Email.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                m.Phonenumber.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                (m.CompanyName != null && m.CompanyName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+            );
+        }
+
+        // Filter op type
+        if (!string.IsNullOrWhiteSpace(filterType))
+        {
+            var type = (MechanicType)int.Parse(filterType);
+            filtered = filtered.Where(m => m.Type == type);
+        }
+
+        // Filter op actief/inactief
+        if (!string.IsNullOrWhiteSpace(filterActive))
+        {
+            var isActive = bool.Parse(filterActive);
+            filtered = filtered.Where(m => m.IsActive == isActive);
+        }
+
+        return filtered;
+    }
+
+    private void ClearFilters()
+    {
+        searchQuery = string.Empty;
+        filterType = string.Empty;
+        filterActive = string.Empty;
+    }
+
+    private void ViewMechanic(int mechanicId)
+    {
+        Navigation.NavigateTo($"/mechanic/{mechanicId}");
+    }
+
+    private void EditMechanic(int mechanicId)
+    {
+        Navigation.NavigateTo($"/mechanic/edit/{mechanicId}");
+    }
+
+    private void GoToCreateMechanic()
+    {
+        Navigation.NavigateTo("/mechanic/create");
+    }
+
+    private void ShowDeleteConfirmation(MechanicDto mechanic)
+    {
+        mechanicToDelete = mechanic;
+    }
+
+    private void CancelDelete()
+    {
+        mechanicToDelete = null;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (mechanicToDelete == null) return;
+
+        isDeleting = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            bool success = await MechanicApiService.DeleteMechanicAsync(mechanicToDelete.MechanicID);
+
+            if (success)
+            {
+                successMessage = $"Monteur '{mechanicToDelete.Name}' succesvol verwijderd.";
+                allMechanics.Remove(mechanicToDelete);
+                mechanicToDelete = null;
+            }
+            else
+            {
+                errorMessage = "Fout bij verwijderen van monteur.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij verwijderen: {ex.Message}";
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+}

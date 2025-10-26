@@ -1,4 +1,6 @@
-﻿namespace ZorgmeldSysteem.Blazor.Models.DTOs.Object;
+﻿using ZorgmeldSysteem.Blazor.Models.Enums;
+
+namespace ZorgmeldSysteem.Blazor.Models.DTOs.Object;
 
 public class CreateObjectDto
 {
@@ -13,4 +15,6 @@ public class CreateObjectDto
     public DateTime? NextMaintenance { get; set; }
     public int CompanyID { get; set; }
     public string CreatedBy { get; set; } = string.Empty;
+    public Priority DefaultPriority { get; set; } = Priority.Normal;
+    public ReactionTime DefaultReactionTime { get; set; } = ReactionTime.Within24Hours;
 }

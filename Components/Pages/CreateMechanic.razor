@@ -1,0 +1,240 @@
+﻿@page "/mechanic/create"
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Mechanic
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Company
+@using ZorgmeldSysteem.Blazor.Models.Enums
+@using ZorgmeldSysteem.Blazor.Services.Api
+@using ZorgmeldSysteem.Blazor.Services.Helpers
+@inject MechanicApiService MechanicApiService
+@inject CompanyApiService CompanyApiService
+@inject MechanicDisplayService DisplayService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Nieuwe Monteur Aanmaken</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Nieuwe Monteur Aanmaken</h3>
+        <button class="btn btn-secondary" @onclick="Cancel">
+            <i class="bi bi-arrow-left"></i> Terug
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+
+    {
+        <div class="alert alert-danger" role="alert">
+            @errorMessage
+        </div>
+    }
+
+    @if (isLoading)
+
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Laden...</span>
+            </div>
+            <p class="mt-3">Bedrijven laden...</p>
+        </div>
+    }
+
+    else
+
+    {
+        <div class="card">
+            <div class="card-body">
+                <EditForm Model="@newMechanic" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Naam *</label>
+                                <InputText class="form-control" @bind-Value="newMechanic.Name" placeholder="Voor- en achternaam" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Email *</label>
+                                <InputText type="email" class="form-control" @bind-Value="newMechanic.Email" placeholder="naam@example.com" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Telefoonnummer *</label>
+                                <InputText class="form-control" @bind-Value="newMechanic.Phonenumber" placeholder="06-12345678" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Type *</label>
+                                <InputSelect class="form-select" @bind-Value="newMechanic.Type">
+                                    @foreach (MechanicType type in Enum.GetValues(typeof(MechanicType)))
+
+                                    {
+                                        <option value="@type">@DisplayService.GetMechanicTypeDisplayName(type)</option>
+                                    }
+                                </InputSelect>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Bedrijf (optioneel)</label>
+                                <select class="form-select" @bind="newMechanic.CompanyID">
+                                    <option value="">-- Geen bedrijf --</option>
+                                    @foreach (var company in companies)
+
+                                    {
+                                        <option value="@company.CompanyID">@company.Name</option>
+                                    }
+                                </select>
+                                <small class="text-muted">Koppel de monteur aan een bedrijf (indien van toepassing)</small>
+                            </div>
+
+                            <div class="mb-3 form-check form-switch">
+                                <InputCheckbox @bind-Value="newMechanic.IsActive"
+                                               class="form-check-input"
+                                               id="isActive" />
+                                <label class="form-check-label" for="isActive">
+                                    Actief
+                                </label>
+                                <small class="d-block text-muted">Alleen actieve monteurs kunnen aan tickets worden toegewezen</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Aangemaakt door *</label>
+                        <InputText class="form-control" @bind-Value="newMechanic.CreatedBy" placeholder="Jouw naam" />
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                            @if (isSaving)
+
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            <i class="bi bi-save"></i> Monteur Aanmaken
+                        </button>
+                        <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                            Annuleren
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private CreateMechanicDto newMechanic = new();
+
+    private List<CompanyDto> companies = new();
+
+
+
+    private bool isLoading = true;
+
+    private bool isSaving = false;
+
+    private string errorMessage = string.Empty;
+
+
+
+    protected override async Task OnInitializedAsync()
+
+    {
+
+        try
+
+        {
+
+            companies = await CompanyApiService.GetAllCompaniesAsync();
+
+        }
+
+        catch (Exception ex)
+
+        {
+
+            errorMessage = $"Fout bij laden van bedrijven: {ex.Message}";
+
+        }
+
+        finally
+
+        {
+
+            isLoading = false;
+
+        }
+
+    }
+
+
+
+    private async Task HandleSubmit()
+
+    {
+
+        isSaving = true;
+
+        errorMessage = string.Empty;
+
+
+
+        try
+
+        {
+
+            var result = await MechanicApiService.CreateMechanicAsync(newMechanic);
+
+
+
+            if (result != null)
+
+            {
+
+                Navigation.NavigateTo("/mechanics");
+
+            }
+
+            else
+
+            {
+
+                errorMessage = "Er is een fout opgetreden bij het aanmaken van de monteur.";
+
+            }
+
+        }
+
+        catch (Exception ex)
+
+        {
+
+            errorMessage = $"Fout bij aanmaken monteur: {ex.Message}";
+
+        }
+
+        finally
+
+        {
+
+            isSaving = false;
+
+        }
+
+    }
+
+
+
+    private void Cancel()
+
+    {
+
+        Navigation.NavigateTo("/mechanics");
+
+    }
+}

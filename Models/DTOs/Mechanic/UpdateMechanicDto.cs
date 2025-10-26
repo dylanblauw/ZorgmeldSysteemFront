@@ -1,6 +1,6 @@
 ﻿using ZorgmeldSysteem.Blazor.Models.Enums;
 
-namespace ZorgmeldSysteem.Blazor.Models.Mechanic;
+namespace ZorgmeldSysteem.Blazor.Models.DTOs.Mechanic;
 
 public class UpdateMechanicDto
 {

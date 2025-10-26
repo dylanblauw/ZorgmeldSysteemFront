@@ -6,6 +6,7 @@
 @using ZorgmeldSysteem.Blazor.Models.Enums
 @using ZorgmeldSysteem.Blazor.Services;
 @using ZorgmeldSysteem.Blazor.Services.Api
+@using ZorgmeldSysteem.Blazor.ViewModels
 @inject TicketApiService ApiService
 @inject ObjectApiService ObjectApiService
 @inject NavigationManager Navigation
@@ -51,6 +52,7 @@ else
                     </select>
                 </div>
 
+
                 <div class="mb-3">
                     <label class="form-label">Locatie</label>
                     <select class="form-select" value="@newTicket.Location" @onchange="OnLocationChangedHandler">
@@ -95,9 +97,21 @@ else
                         }
                     </InputSelect>
                 </div>
+
+
             </div>
 
             <div class="col-md-6">
+
+                <div class="mb-3 form-check form-switch">
+                    <InputCheckbox @bind-Value="newTicket.IsUrgent"
+                                   class="form-check-input"
+                                   id="spoed" />
+                    <label class="form-check-label" for="spoed">
+                        <span class="badge bg-danger">🚨 SPOED</span>
+                        Directe aandacht nodig
+                    </label>
+                </div>
                 <div class="mb-3">
                     <label class="form-label">Prioriteit *</label>
                     <InputSelect class="form-select" @bind-Value="newTicket.Priority">
@@ -124,6 +138,7 @@ else
                 </div>
             </div>
         </div>
+
 
         <div class="mb-3">
             <label class="form-label">Beschrijving *</label>
@@ -158,6 +173,7 @@ else
     private List<ObjectDto> availableObjects = new();
     private List<ObjectDto> filteredObjects = new();
     private List<string> availableLocations = new();
+    private CreateTicketViewModel viewModel = new();
 
     private bool isLoading = true;
     private bool isSaving = false;
@@ -243,6 +259,12 @@ else
 
         try
         {
+            if (newTicket.IsUrgent)
+            {
+                newTicket.Priority = Priority.Critical;
+                newTicket.ReactionTime = ReactionTime.Within4Hours;
+            }
+
             var result = await ApiService.CreateTicketAsync(newTicket);
 
             if (result != null)

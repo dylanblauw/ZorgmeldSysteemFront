@@ -1,5 +1,4 @@
 ﻿using ZorgmeldSysteem.Blazor.Models.Enums;
-
 namespace ZorgmeldSysteem.Blazor.Services.Helpers
 {
     public class TicketDisplayService
@@ -14,10 +13,16 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
                 TicketStatus.Open => "Open",
                 TicketStatus.Assigned => "Toegewezen",
                 TicketStatus.InProgress => "In Behandeling",
+                TicketStatus.PendingCustomer => "Wacht op Klant",
+                TicketStatus.PendingSupplier => "Wacht op Leverancier",
+                TicketStatus.PendingApproval => "Wacht op Goedkeuring",
+                TicketStatus.AwaitingParts => "Wacht op Onderdelen",
+                TicketStatus.Scheduled => "Ingepland",
+                TicketStatus.OnHold => "In de Wacht",
                 TicketStatus.Solved => "Opgelost",
                 TicketStatus.Closed => "Gesloten",
                 TicketStatus.Cancelled => "Geannuleerd",
-                _ => status.ToString()
+                _ => $"Onbekend ({(int)status})"  // Toon het getal voor debugging
             };
         }
 
@@ -47,6 +52,12 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
                 TicketStatus.Open => "bg-warning text-dark",
                 TicketStatus.Assigned => "bg-info",
                 TicketStatus.InProgress => "bg-primary",
+                TicketStatus.PendingCustomer => "bg-warning",
+                TicketStatus.PendingSupplier => "bg-warning",
+                TicketStatus.PendingApproval => "bg-warning",
+                TicketStatus.AwaitingParts => "bg-info",
+                TicketStatus.Scheduled => "bg-info",
+                TicketStatus.OnHold => "bg-secondary",
                 TicketStatus.Solved => "bg-success",
                 TicketStatus.Closed => "bg-secondary",
                 TicketStatus.Cancelled => "bg-danger",
@@ -93,7 +104,8 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
         {
             return status == TicketStatus.Open ||
                    status == TicketStatus.Assigned ||
-                   status == TicketStatus.InProgress;
+                   status == TicketStatus.InProgress ||
+                   status == TicketStatus.Scheduled;
         }
 
         /// <summary>
@@ -105,13 +117,3 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
         }
     }
 }
-
-
-
-
-
-
-
-
-
-

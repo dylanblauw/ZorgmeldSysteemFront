@@ -1,0 +1,323 @@
+﻿@page "/companies"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Company
+@using ZorgmeldSysteem.Blazor.Services.Api
+@inject CompanyApiService CompanyApiService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Bedrijven Overzicht</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Bedrijven Overzicht</h3>
+        <button class="btn btn-primary" @onclick="GoToCreateCompany">
+            <i class="bi bi-plus-circle"></i> Nieuw Bedrijf
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            @errorMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @successMessage
+            <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Laden...</span>
+            </div>
+            <p class="mt-3">Bedrijven laden...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Filter sectie -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Zoeken</label>
+                        <input type="text" class="form-control"
+                               @bind="searchQuery"
+                               @bind:event="oninput"
+                               placeholder="Zoek op naam, plaats of contactpersoon..." />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Type</label>
+                        <select class="form-select" @bind="filterExternal" @bind:event="onchange">
+                            <option value="">Alle bedrijven</option>
+                            <option value="false">Intern</option>
+                            <option value="true">Extern</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-secondary w-100" @onclick="ClearFilters">
+                            <i class="bi bi-x-circle"></i> Reset Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- QuickGrid -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-filter"></i> @GetFilteredCompanies().Count() van @allCompanies.Count bedrijven
+                    </p>
+                    <div>
+                        <label class="me-2">Items per pagina:</label>
+                        <select class="form-select form-select-sm d-inline-block" style="width: auto;"
+                                @bind="@pagination.ItemsPerPage" @bind:event="onchange">
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                </div>
+
+                <QuickGrid Items="@GetFilteredCompanies()" Pagination="@pagination" Class="table table-hover">
+                    <PropertyColumn Property="@(c => c.Name)" Title="Bedrijfsnaam" Sortable="true" />
+
+                    <TemplateColumn Title="Adres" Sortable="true"
+                                    SortBy="@(GridSort<CompanyDto>.ByAscending(c => c.City))">
+                        <div>
+                            <div>@context.Street @context.HouseNumber@context.HouseNumberAddition</div>
+                            <small class="text-muted">@context.PostalCode @context.City</small>
+                        </div>
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Contact">
+                        <div>
+                            <div><i class="bi bi-person"></i> @context.Contact</div>
+                            <small class="text-muted"><i class="bi bi-envelope"></i> @context.Email</small><br />
+                            <small class="text-muted"><i class="bi bi-telephone"></i> @context.Phonenumber</small>
+                        </div>
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Type" Sortable="true"
+                                    SortBy="@(GridSort<CompanyDto>.ByAscending(c => c.IsExternal))">
+                        @if (context.IsExternal)
+                        {
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-building"></i> Extern
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-primary">
+                                <i class="bi bi-house"></i> Intern
+                            </span>
+                        }
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Acties">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-primary"
+                                    @onclick="() => ViewCompany(context.CompanyID)"
+                                    title="Bekijken">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-warning"
+                                    @onclick="() => EditCompany(context.CompanyID)"
+                                    title="Bewerken">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-outline-danger"
+                                    @onclick="() => ShowDeleteConfirmation(context)"
+                                    title="Verwijderen">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </TemplateColumn>
+                </QuickGrid>
+
+                <Paginator State="@pagination" />
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Delete Confirmation Modal -->
+@if (companyToDelete != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Bedrijf Verwijderen</h5>
+                    <button type="button" class="btn-close" @onclick="CancelDelete"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Weet je zeker dat je <strong>@companyToDelete.Name</strong> wilt verwijderen?</p>
+                    <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> Deze actie kan niet ongedaan worden gemaakt.</p>
+                    <p class="text-warning"><small><i class="bi bi-info-circle"></i> Let op: Tickets en monteurs gekoppeld aan dit bedrijf blijven bestaan.</small></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelDelete">Annuleren</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@isDeleting">
+                        @if (isDeleting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Verwijderen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .quickgrid {
+        font-size: 0.95rem;
+    }
+
+    .quickgrid th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+</style>
+
+@code {
+    private List<CompanyDto> allCompanies = new();
+    private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
+
+    private string searchQuery = string.Empty;
+    private string filterExternal = string.Empty;
+
+    private bool isLoading = true;
+    private bool isDeleting = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    private CompanyDto? companyToDelete = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCompanies();
+    }
+
+    private async Task LoadCompanies()
+    {
+        try
+        {
+            isLoading = true;
+            allCompanies = await CompanyApiService.GetAllCompaniesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij laden van bedrijven: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private IQueryable<CompanyDto> GetFilteredCompanies()
+    {
+        var filtered = allCompanies.AsQueryable();
+
+        // Zoeken
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            filtered = filtered.Where(c =>
+                c.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                c.City.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                c.Contact.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                c.Email.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
+            );
+        }
+
+        // Filter op intern/extern
+        if (!string.IsNullOrWhiteSpace(filterExternal))
+        {
+            var isExternal = bool.Parse(filterExternal);
+            filtered = filtered.Where(c => c.IsExternal == isExternal);
+        }
+
+        return filtered;
+    }
+
+    private void ClearFilters()
+    {
+        searchQuery = string.Empty;
+        filterExternal = string.Empty;
+    }
+
+    private void ViewCompany(int companyId)
+    {
+        Navigation.NavigateTo($"/company/{companyId}");
+    }
+
+    private void EditCompany(int companyId)
+    {
+        Navigation.NavigateTo($"/company/edit/{companyId}");
+    }
+
+    private void GoToCreateCompany()
+    {
+        Navigation.NavigateTo("/company/create");
+    }
+
+    private void ShowDeleteConfirmation(CompanyDto company)
+    {
+        companyToDelete = company;
+    }
+
+    private void CancelDelete()
+    {
+        companyToDelete = null;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (companyToDelete == null) return;
+
+        isDeleting = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            bool success = await CompanyApiService.DeleteCompanyAsync(companyToDelete.CompanyID);
+
+            if (success)
+            {
+                successMessage = $"Bedrijf '{companyToDelete.Name}' succesvol verwijderd.";
+                allCompanies.Remove(companyToDelete);
+                companyToDelete = null;
+            }
+            else
+            {
+                errorMessage = "Fout bij verwijderen van bedrijf.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij verwijderen: {ex.Message}";
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+}

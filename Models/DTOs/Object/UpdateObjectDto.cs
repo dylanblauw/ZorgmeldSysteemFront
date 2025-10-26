@@ -1,4 +1,6 @@
-﻿namespace ZorgmeldSysteem.Blazor.Models.DTOs.Object;
+﻿using ZorgmeldSysteem.Blazor.Models.Enums;
+
+namespace ZorgmeldSysteem.Blazor.Models.DTOs.Object;
 
 public class UpdateObjectDto
 {
@@ -11,4 +13,6 @@ public class UpdateObjectDto
     public DateTime? LastMaintenance { get; set; }
     public DateTime? NextMaintenance { get; set; }
     public string ChangedBy { get; set; } = string.Empty;
+    public Priority DefaultPriority { get; set; }
+    public ReactionTime DefaultReactionTime { get; set; }
 }

@@ -5,7 +5,7 @@
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Mechanic
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Object
 @using ZorgmeldSysteem.Blazor.Models.Enums
-@using ZorgmeldSysteem.Blazor.Services;
+@using ZorgmeldSysteem.Blazor.Services
 @using ZorgmeldSysteem.Blazor.Services.Api
 @inject TicketApiService ApiService
 @inject ObjectApiService ObjectApiService
@@ -17,14 +17,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>
-            @if (isEditMode)
-            {
-                <span>Ticket Bewerken: @ticket?.TicketCode</span>
-            }
-            else
-            {
-                <span>Ticket Details: @ticket?.TicketCode</span>
-            }
+            @(isEditMode ? $"Ticket Bewerken: {ticket?.TicketCode}" : $"Ticket Details: {ticket?.TicketCode}")
         </h3>
         <div>
             @if (!isEditMode && ticket != null)
@@ -39,70 +32,36 @@
         </div>
     </div>
 
+    @if (ticket != null && ticket.IsUrgent)
+    {
+        <div class="alert alert-danger mb-4 text-center">
+            🚨 <strong>SPOEDTICKET!</strong> Dit ticket vereist directe aandacht.
+        </div>
+    }
+
     @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="alert alert-danger" role="alert">
-            @errorMessage
-        </div>
+        <div class="alert alert-danger">@errorMessage</div>
     }
 
     @if (!string.IsNullOrEmpty(successMessage))
     {
-        <div class="alert alert-success" role="alert">
-            @successMessage
-        </div>
+        <div class="alert alert-success">@successMessage</div>
     }
 
     @if (isLoading)
     {
         <div class="text-center my-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Laden...</span>
-            </div>
+            <div class="spinner-border text-primary" role="status"></div>
             <p class="mt-3">Ticket laden...</p>
         </div>
     }
     else if (ticket == null)
     {
-        <div class="alert alert-warning">
-            Ticket niet gevonden.
-        </div>
+        <div class="alert alert-warning">Ticket niet gevonden.</div>
     }
     else
     {
-        <!-- Status badges bovenaan -->
-        <div class="card mb-3">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <small class="text-muted">Status</small>
-                        <div>
-                            <span class="badge @GetStatusBadgeClass(ticket.Status) fs-6">
-                                @GetStatusDisplayName(ticket.Status)
-                            </span>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <small class="text-muted">Prioriteit</small>
-                        <div>
-                            <span class="badge @GetPriorityBadgeClass(ticket.Priority) fs-6">
-                                <i class="bi @GetPriorityIcon(ticket.Priority)"></i>
-                                @GetPriorityDisplayName(ticket.Priority)
-                            </span>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <small class="text-muted">Aangemaakt op</small>
-                        <div>@ticket.CreatedOn.ToString("dd-MM-yyyy HH:mm")</div>
-                    </div>
-@*                     <div class="col-md-3">
-                        <small class="text-muted">Laatst bijgewerkt</small>
-                        <div>@(ticket.UpdatedOn?.ToString("dd-MM-yyyy HH:mm") ?? "-")</div>
-                    </div> *@
-                </div>
-            </div>
-        </div>
-    
         <EditForm Model="@ticket" OnValidSubmit="HandleSubmit">
             <DataAnnotationsValidator />
             <ValidationSummary />
@@ -113,7 +72,7 @@
                         <label class="form-label">Bedrijf *</label>
                         @if (isEditMode)
                         {
-                            <select class="form-select" @onchange="OnCompanyChangedHandler" disabled="@(!isEditMode)">
+                            <select class="form-select" @onchange="OnCompanyChangedHandler">
                                 <option value="0">-- Selecteer bedrijf --</option>
                                 @foreach (CompanyDto company in companies)
                                 {
@@ -133,11 +92,13 @@
                         <label class="form-label">Locatie</label>
                         @if (isEditMode)
                         {
-                            <select class="form-select" value="@ticket.Location" @onchange="OnLocationChangedHandler">
+                            <select class="form-select" @onchange="OnLocationChangedHandler">
                                 <option value="">-- Selecteer locatie --</option>
                                 @foreach (string location in availableLocations)
                                 {
-                                    <option value="@location" selected="@(location == ticket.Location)">@location</option>
+                                    <option value="@location" selected="@(location == ticket.Location)">
+                                        @location
+                                    </option>
                                 }
                             </select>
                         }
@@ -236,35 +197,26 @@
                         }
                     </div>
 
-@*                     <div class="mb-3">
-                        <label class="form-label">Aangemaakt door</label>
-                        <input type="text" class="form-control" value="@ticket.CreatedBy" readonly />
-                    </div> *@
+                    @if (isEditMode && ticket != null)
+                    {
+                        <div class="mb-3 form-check form-switch">
+                            <InputCheckbox @bind-Value="ticket.IsUrgent" class="form-check-input" id="spoedToggle" />
+                            <label class="form-check-label" for="spoedToggle">
+                                <span class="badge bg-danger">SPOED</span> Markeer als spoedticket
+                            </label>
+                        </div>
+                    }
                 </div>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Beschrijving *</label>
-                @if (isEditMode)
-                {
-                    <InputTextArea class="form-control" @bind-Value="ticket.Description" rows="4" />
-                }
-                else
-                {
-                    <textarea class="form-control" rows="4" readonly>@ticket.Description</textarea>
-                }
+                <InputTextArea class="form-control" @bind-Value="ticket.Description" rows="4" readonly="@(!isEditMode)" />
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Notitie</label>
-                @if (isEditMode)
-                {
-                    <InputTextArea class="form-control" @bind-Value="ticket.Note" rows="3" />
-                }
-                else
-                {
-                    <textarea class="form-control" rows="3" readonly>@(ticket.Note ?? "-")</textarea>
-                }
+                <InputTextArea class="form-control" @bind-Value="ticket.Note" rows="3" readonly="@(!isEditMode)" />
             </div>
 
             @if (isEditMode)
@@ -283,44 +235,8 @@
                 </div>
             }
         </EditForm>
-
-     @*    <!-- Historie sectie (alleen in view mode) -->
-        @if (!isEditMode && ticket.History != null && ticket.History.Count > 0)
-        {
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Historie</h5>
-                </div>
-                <div class="card-body">
-                    <div class="timeline">
-                        @foreach (TicketHistoryDto history in ticket.History.OrderByDescending(h => h.CreatedOn))
-                        {
-                            <div class="timeline-item">
-                                <small class="text-muted">@history.CreatedOn.ToString("dd-MM-yyyy HH:mm")</small>
-                                <p class="mb-1">@history.Description</p>
-                                <small class="text-muted">Door: @history.CreatedBy</small>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        } *@
     }
 </div>
-
-<style>
-    .timeline-item {
-        padding: 10px;
-        border-left: 3px solid #dee2e6;
-        margin-left: 10px;
-        margin-bottom: 15px;
-    }
-
-    .timeline-item:hover {
-        background-color: #f8f9fa;
-        border-left-color: #007bff;
-    }
-</style>
 
 @code {
     [Parameter] public int TicketId { get; set; }
@@ -340,9 +256,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Check of we in edit mode zijn gebaseerd op de URL
         isEditMode = Navigation.Uri.Contains("/edit/");
-
         await LoadTicket();
         await LoadDropdownData();
     }
@@ -353,20 +267,14 @@
         {
             isLoading = true;
             ticket = await ApiService.GetTicketByIdAsync(TicketId);
-
             if (ticket != null && ticket.CompanyID > 0)
-            {
                 await LoadCompanySpecificData(ticket.CompanyID);
-            }
         }
         catch (Exception ex)
         {
             errorMessage = $"Fout bij laden van ticket: {ex.Message}";
         }
-        finally
-        {
-            isLoading = false;
-        }
+        finally { isLoading = false; }
     }
 
     private async Task LoadDropdownData()
@@ -375,9 +283,7 @@
         {
             Task<List<CompanyDto>> companiesTask = ApiService.GetAllCompaniesAsync();
             Task<List<MechanicDto>> mechanicsTask = ApiService.GetActiveMechanicsAsync();
-
             await Task.WhenAll(companiesTask, mechanicsTask);
-
             companies = await companiesTask;
             mechanics = await mechanicsTask;
         }
@@ -393,9 +299,7 @@
         {
             Task<List<string>> locationsTask = ObjectApiService.GetLocationsByCompanyAsync(companyId);
             Task<List<ObjectDto>> objectsTask = ObjectApiService.GetObjectsByCompanyAsync(companyId);
-
             await Task.WhenAll(locationsTask, objectsTask);
-
             availableLocations = await locationsTask;
             availableObjects = await objectsTask;
             FilterObjectsByLocation();
@@ -461,25 +365,21 @@
         if (ticket == null) return;
 
         isSaving = true;
-        errorMessage = string.Empty;
-        successMessage = string.Empty;
+        errorMessage = successMessage = string.Empty;
 
         try
         {
-            UpdateTicketDto updateDto = new UpdateTicketDto
-                {
-                    // TicketID = ticket.TicketID,
-                    // CompanyID = ticket.CompanyID,
-                    Description = ticket.Description,
-                    Status = ticket.Status,
-                    Priority = ticket.Priority,
-                    ReactionTime = ticket.ReactionTime,
-                    Location = ticket.Location,
-                    // ObjectId = ticket.ObjectId,
-                    MechanicID = ticket.MechanicID,
-                    Note = ticket.Note,
-                    // UpdatedBy = "Huidige Gebruiker" // Dit zou uit auth moeten komen
-                };
+            UpdateTicketDto updateDto = new()
+            {
+                Description = ticket.Description,
+                Status = ticket.Status,
+                Priority = ticket.Priority,
+                ReactionTime = ticket.ReactionTime,
+                Location = ticket.Location,
+                MechanicID = ticket.MechanicID,
+                Note = ticket.Note,
+                IsUrgent = ticket.IsUrgent
+            };
 
             TicketDto? result = await ApiService.UpdateTicketAsync(ticket.TicketID, updateDto);
 
@@ -488,8 +388,6 @@
                 ticket = result;
                 successMessage = "Ticket succesvol bijgewerkt!";
                 isEditMode = false;
-
-                // Herlaad de ticket om de laatste versie te krijgen
                 await LoadTicket();
             }
         }
@@ -497,83 +395,44 @@
         {
             errorMessage = $"Fout bij opslaan: {ex.Message}";
         }
-        finally
-        {
-            isSaving = false;
-        }
+        finally { isSaving = false; }
     }
 
-    private void EnableEditMode()
-    {
-        isEditMode = true;
-        successMessage = string.Empty;
-    }
+    private void EnableEditMode() => isEditMode = true;
 
     private async Task CancelEdit()
     {
         isEditMode = false;
-        errorMessage = string.Empty;
-        successMessage = string.Empty;
-
-        // Herlaad de originele data
         await LoadTicket();
     }
 
-    private void GoBack()
-    {
-        Navigation.NavigateTo("/Tickets");
-    }
+    private void GoBack() => Navigation.NavigateTo("/Tickets");
 
-    // Helper methodes voor display
-    private string GetStatusDisplayName(TicketStatus status) => status switch
+    private string GetStatusDisplayName(TicketStatus s) => s switch
     {
         TicketStatus.Open => "Open",
         TicketStatus.Assigned => "Toegewezen",
         TicketStatus.InProgress => "In Behandeling",
+        TicketStatus.PendingCustomer => "Wacht op Klant",
+        TicketStatus.PendingSupplier => "Wacht op Leverancier",
+        TicketStatus.PendingApproval => "Wacht op Goedkeuring",
+        TicketStatus.AwaitingParts => "Wacht op Onderdelen",
+        TicketStatus.Scheduled => "Ingepland",
+        TicketStatus.OnHold => "In de Wacht",
         TicketStatus.Solved => "Opgelost",
         TicketStatus.Closed => "Gesloten",
         TicketStatus.Cancelled => "Geannuleerd",
-        _ => status.ToString()
+        _ => "Onbekend"  // Fallback
+
     };
 
-    private string GetPriorityDisplayName(Priority priority) => priority switch
+    private string GetPriorityDisplayName(Priority p) => p switch
     {
         Priority.Low => "Laag",
         Priority.Normal => "Normaal",
         Priority.High => "Hoog",
         Priority.Urgent => "Urgent",
         Priority.Critical => "Kritiek",
-        _ => priority.ToString()
-    };
-
-    private string GetStatusBadgeClass(TicketStatus status) => status switch
-    {
-        TicketStatus.Open => "bg-warning text-dark",
-        TicketStatus.Assigned => "bg-info",
-        TicketStatus.InProgress => "bg-primary",
-        TicketStatus.Solved => "bg-success",
-        TicketStatus.Closed => "bg-secondary",
-        TicketStatus.Cancelled => "bg-danger",
-        _ => "bg-secondary"
-    };
-
-    private string GetPriorityBadgeClass(Priority priority) => priority switch
-    {
-        Priority.Low => "bg-secondary",
-        Priority.Normal => "bg-info",
-        Priority.High => "bg-warning text-dark",
-        Priority.Urgent => "bg-danger",
-        Priority.Critical => "bg-dark",
-        _ => "bg-secondary"
-    };
-
-    private string GetPriorityIcon(Priority priority) => priority switch
-    {
-        Priority.Low => "bi-arrow-down",
-        Priority.Normal => "bi-dash",
-        Priority.High => "bi-arrow-up",
-        Priority.Urgent => "bi-exclamation-triangle",
-        Priority.Critical => "bi-exclamation-octagon",
-        _ => "bi-dash"
+        _ => p.ToString()
     };
 }

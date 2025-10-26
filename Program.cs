@@ -23,8 +23,19 @@ builder.Services.AddHttpClient<ObjectApiService>(client =>
     client.BaseAddress = new Uri(apiBaseUrl);
 });
 
+builder.Services.AddHttpClient<MechanicApiService>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+});
+
+builder.Services.AddHttpClient<CompanyApiService>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+});
+
 // Helper Services (Singleton - geen state)
 builder.Services.AddSingleton<TicketDisplayService>();
+builder.Services.AddSingleton<MechanicDisplayService>();
 
 // Business Services (Singleton - geen state)
 builder.Services.AddSingleton<QRCodeService>();

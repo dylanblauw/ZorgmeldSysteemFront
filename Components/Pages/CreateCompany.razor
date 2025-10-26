@@ -1,0 +1,193 @@
+﻿@page "/company/create"
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Company
+@using ZorgmeldSysteem.Blazor.Services.Api
+@inject CompanyApiService CompanyApiService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Nieuw Bedrijf Aanmaken</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Nieuw Bedrijf Aanmaken</h3>
+        <button class="btn btn-secondary" @onclick="Cancel">
+            <i class="bi bi-arrow-left"></i> Terug
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            @errorMessage
+        </div>
+    }
+
+    <div class="card">
+        <div class="card-body">
+            <EditForm Model="@newCompany" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <h5 class="card-title mb-3">Algemene Informatie</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Bedrijfsnaam *</label>
+                            <InputText class="form-control" @bind-Value="newCompany.Name" placeholder="Bedrijfsnaam" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Email *</label>
+                            <InputText type="email" class="form-control" @bind-Value="newCompany.Email" placeholder="info@bedrijf.nl" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Telefoonnummer *</label>
+                            <InputText class="form-control" @bind-Value="newCompany.Phonenumber" placeholder="088-1234567" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Contactpersoon *</label>
+                            <InputText class="form-control" @bind-Value="newCompany.Contact" placeholder="Naam contactpersoon" />
+                        </div>
+
+                        <div class="mb-3 form-check form-switch">
+                            <InputCheckbox @bind-Value="newCompany.IsExternal"
+                                           class="form-check-input"
+                                           id="isExternal" />
+                            <label class="form-check-label" for="isExternal">
+                                Extern Bedrijf
+                            </label>
+                            <small class="d-block text-muted">Externe bedrijven zijn leveranciers of partners</small>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <h5 class="card-title mb-3">Adresgegevens</h5>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label class="form-label">Straat *</label>
+                            <InputText class="form-control" @bind-Value="newCompany.Street" placeholder="Straatnaam" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <div class="mb-3">
+                            <label class="form-label">Nummer *</label>
+                            <InputText class="form-control" @bind-Value="newCompany.HouseNumber" placeholder="123" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <div class="mb-3">
+                            <label class="form-label">Toevoeging</label>
+                            <InputText class="form-control" @bind-Value="newCompany.HouseNumberAddition" placeholder="A" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Postcode *</label>
+                            <InputText class="form-control" @bind-Value="newCompany.PostalCode" placeholder="1234 AB" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Plaats *</label>
+                            <InputText class="form-control" @bind-Value="newCompany.City" placeholder="Amsterdam" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Provincie *</label>
+                            <InputText class="form-control" @bind-Value="newCompany.Province" placeholder="Noord-Holland" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Land *</label>
+                            <InputText class="form-control" @bind-Value="newCompany.Country" placeholder="Nederland" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Aangemaakt door *</label>
+                            <InputText class="form-control" @bind-Value="newCompany.CreatedBy" placeholder="Jouw naam" />
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        <i class="bi bi-save"></i> Bedrijf Aanmaken
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                        Annuleren
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateCompanyDto newCompany = new()
+        {
+            Country = "Nederland" // Default waarde
+        };
+
+    private bool isSaving = false;
+    private string errorMessage = string.Empty;
+
+    private async Task HandleSubmit()
+    {
+        isSaving = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var result = await CompanyApiService.CreateCompanyAsync(newCompany);
+
+            if (result != null)
+            {
+                Navigation.NavigateTo("/companies");
+            }
+            else
+            {
+                errorMessage = "Er is een fout opgetreden bij het aanmaken van het bedrijf.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij aanmaken bedrijf: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/companies");
+    }
+}

@@ -1,4 +1,7 @@
-﻿namespace ZorgmeldSysteem.Blazor.Models.DTOs.Object;
+﻿using System.ComponentModel.DataAnnotations;
+using ZorgmeldSysteem.Blazor.Models.Enums;
+
+namespace ZorgmeldSysteem.Blazor.Models.DTOs.Object;
 
 public class ObjectDto
 {
@@ -15,4 +18,6 @@ public class ObjectDto
     public DateTime? NextMaintenance { get; set; }
     public int CompanyID { get; set; }
     public string CompanyName { get; set; } = string.Empty;
+    public Priority DefaultPriority { get; set; }
+    public ReactionTime DefaultReactionTime { get; set; }
 }
