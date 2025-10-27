@@ -1,20 +1,29 @@
-html, body {
+/* ========================================== */
+/* BASE STYLES                                */
+/* ========================================== */
+
+/*html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 a, .btn-link {
-    color: #006bb7;
-}
+    color: #cfb815;*/ /* Aangepast naar Fixility geel */
+/*}
 
 .btn-primary {
     color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
-}
+    background-color: #cfb815;*/ /* Aangepast naar Fixility geel */
+    /*border-color: #a89412;*/ /* Donkerder geel voor border */
+/*}
+
+    .btn-primary:hover {
+        background-color: #a89412;
+        border-color: #8a7910;
+    }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem rgba(207, 184, 21, 0.5);*/ /* Aangepast naar Fixility geel */
+/*}
 
 .content {
     padding-top: 1.1rem;
@@ -48,19 +57,600 @@ h1:focus {
 
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
+}*/
+
+/* ========================================== */
+/* CARD STYLES & HOVER EFFECTS               */
+/* ========================================== */
+
+/*.card {
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Card hover effects */
+    .card:hover {
+        transform: translateY(-5px);*/ /* Extra: lift effect */
+        /*box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    }*/
+
+/* Extra shadow voor gekleurde cards */
+/*.bg-danger:hover,
+.bg-primary:hover,
+.bg-success:hover,
+.bg-info:hover,
+.bg-warning:hover {
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+}*/
+
+/* ========================================== */
+/* BUTTON STYLES                             */
+/* ========================================== */
+
+/*.btn {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+    .btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn:active {
+        transform: scale(0.98);
+    }*/
+
+/* Secondary button met Fixility thema */
+/*.btn-secondary {
+    background-color: #2a2a2a;
+    border-color: #2a2a2a;
+}
+
+    .btn-secondary:hover {
+        background-color: #1a1a1a;
+        border-color: #1a1a1a;
+    }*/
+
+/* Success button */
+/*.btn-success:hover {
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}*/
+
+/* Danger button */
+/*.btn-danger:hover {
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}*/
+
+/* Warning button met Fixility geel */
+/*.btn-warning {
+    color: #000;
+    background-color: #cfb815;
+    border-color: #cfb815;
+}
+
+    .btn-warning:hover {
+        background-color: #a89412;
+        border-color: #a89412;
+        box-shadow: 0 4px 12px rgba(207, 184, 21, 0.4);
+    }*/
+
+/* ========================================== */
+/* FIXILITY - NAVBAR & SIDEBAR STYLING       */
+/* ========================================== */
+
+/* Logo styling */
+/*.navbar-logo {
+    
+    width: 100%;
+    max-width:200px;
+    object-fit: contain;
+    transition: opacity 0.2s ease;
+}
+
+    .navbar-logo:hover {
+        opacity: 0.2;
+    }
+
+.navbar-brand {
+    padding: 0.5rem 1rem;
+}*/
+
+/* Top row styling met gele accent */
+/*.top-row-edit {
+    background-color: rgba(0, 0, 0, 0.5);
+    border-bottom: 5px solid #cfb815;
+    justify-content: flex-end;
+    display: flex;
+    align-items: center;
+}*/
+
+/* Sidebar gradient - donker met subtiele gouden gloed */
+/*.sidebar {
+    background-color: darkslategrey !important;
+}*/
+
+/* Nav scrollable area */
+/*.nav-scrollable {
+    background: transparent !important;
+}*/
+
+/* Betere spacing tussen secties */
+/*.nav-item.px-3.mt-3 {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 1rem !important;
+}*/
+
+/* Collapsible header styling */
+/*.collapsible-header {
+    cursor: pointer;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    transition: background-color 0.2s ease;
+    user-select: none;
+}
+
+    .collapsible-header:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 0.375rem;
+    }*/
+
+/* Submenu animation */
+/*.submenu {
+    animation: slideDown 0.2s ease-out;
+    overflow: hidden;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+
+    to {
+        opacity: 1;
+        max-height: 200px;
+    }
+}*/
+
+/* Hover effect voor alle nav items */
+/*.nav-item .nav-link:hover {
+    background: linear-gradient( 90deg, rgba(207, 184, 21, 0.12) 0%, rgba(207, 184, 21, 0.05) 100% );
+    border-left: 3px solid #cfb815;
+    padding-left: calc(1rem - 3px);
+    border-radius: 0.375rem;
+}*/
+
+/* Hover effect specifiek voor submenu items */
+/*.nav-item.ps-5 .nav-link:hover {
+    background: linear-gradient( 90deg, rgba(207, 184, 21, 0.12) 0%, rgba(207, 184, 21, 0.05) 100% );
+    border-left: 3px solid #cfb815;
+    padding-left: calc(1rem - 3px);
+    border-radius: 0.375rem;
+}*/
+
+/* Active state styling */
+/*.nav-item .nav-link.active {
+    background: linear-gradient( 90deg, rgba(207, 184, 21, 0.18) 0%, rgba(207, 184, 21, 0.08) 100% );
+    border-left: 4px solid #cfb815;
+    padding-left: calc(1rem - 4px);
+    border-radius: 0.375rem;
+}*/
+
+/* Icon spacing */
+/*.nav-link span[class^="bi-"] {
+    margin-right: 0.5rem;
+}*/
+
+/* Chevron icon */
+/*.bi-chevron-up,
+.bi-chevron-down {
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+}*/
+
+/* ========================================== */
+/* FIXILITY - EXTRA THEME STYLING           */
+/* ========================================== */
+
+/* Accent kleur voor links */
+/*a:hover {
+    color: #a89412;
+    text-decoration: none;
+}*/
+
+/* Focus states met gele accent */
+/*input:focus,
+textarea:focus,
+select:focus {
+    border-color: #cfb815;
+    box-shadow: 0 0 0 0.2rem rgba(207, 184, 21, 0.25);
+}*/
+
+/* Badge met Fixility geel */
+/*.badge.bg-warning {
+    background-color: #cfb815 !important;
+    color: #000;
+}*/
+
+/* Alert met gele accent */
+/*.alert-warning {
+    background-color: rgba(207, 184, 21, 0.1);
+    border-color: #cfb815;
+    color: #856f11;
+}*/
+
+/* Table hover met gele accent */
+/*.table-hover tbody tr:hover {
+    background-color: rgba(207, 184, 21, 0.05);
+}*/
+
+/* Spoed badge styling */
+/*.badge.bg-danger {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}*/
+
+/* ========================================== */
+/* RESPONSIVE AANPASSINGEN                   */
+/* ========================================== */
+
+/* Tablet */
+/*@media (max-width: 992px) {
+    .navbar-logo {
+        max-width: 200px;
+    }
+
+    .card:hover {
+        transform: translateY(-3px);
+    }
+}*/
+
+/* Mobiel */
+/*@media (max-width: 576px) {
+    .navbar-logo {
+        max-width: 150px;
+    }
+
+    .top-row-edit {
+        border-bottom: 3px solid #cfb815;
+    }
+
+    .btn {
+        font-size: 0.9rem;
+    }
+
+    .card:hover {
+        transform: none;
+    }
+}*/
+
+/* ========================================== */
+/* UTILITY CLASSES                           */
+/* ========================================== */
+
+/* Text colors */
+/*.text-accent {
+    color: #cfb815 !important;
+}
+
+.text-accent-dark {
+    color: #a89412 !important;
+}*/
+
+/* Background colors */
+/*.bg-accent {
+    background-color: #cfb815 !important;
+    color: #000;
+}
+
+.bg-accent-light {
+    background-color: rgba(207, 184, 21, 0.1) !important;
+}*/
+
+/* Border colors */
+/*.border-accent {
+    border-color: #cfb815 !important;
+}*/
+
+/* Hover utility */
+/*.hover-lift {
+    transition: transform 0.3s ease;
+}
+
+    .hover-lift:hover {
+        transform: translateY(-5px);
+    }*/
+
+/* Smooth transitions */
+/*.transition-all {
+    transition: all 0.3s ease;
+}*/
+
+
+/* ========================================== */
+/* FIXILITY KLEURENSCHEMA                    */
+/* ========================================== */
+:root {
+    --fixility-gold: #CFB015;
+    --fixility-gold-dark: #a89012;
+    --fixility-olive: #5E5A3E;
+    --fixility-purple: #635085;
+    --fixility-dark: #1a1a1a;
+    --fixility-black: #000000;
+}
+
+/* ========================================== */
+/* BASE STYLES                                */
+/* ========================================== */
+
+html, body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+a, .btn-link {
+    color: var(--fixility-gold);
+}
+
+    a:hover {
+        color: var(--fixility-gold-dark);
+        text-decoration: none;
+    }
+
+/* ========================================== */
+/* BUTTONS                                    */
+/* ========================================== */
+
+.btn {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+    .btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn:active {
+        transform: scale(0.98);
+    }
+
+/* Primary button - Goud */
+.btn-primary {
+    color: #000;
+    background-color: var(--fixility-gold);
+    border-color: var(--fixility-gold);
+}
+
+    .btn-primary:hover {
+        color: #000;
+        background-color: var(--fixility-gold-dark);
+        border-color: var(--fixility-gold-dark);
+        box-shadow: 0 4px 12px rgba(207, 176, 21, 0.4);
+    }
+
+/* Secondary button - Donker */
+.btn-secondary {
+    background-color: var(--fixility-olive);
+    border-color: var(--fixility-olive);
+    color: #fff;
+}
+
+    .btn-secondary:hover {
+        background-color: #4a4630;
+        border-color: #4a4630;
+        color: #fff;
+    }
+
+/* Outline buttons */
+.btn-outline-primary {
+    color: var(--fixility-gold);
+    border-color: var(--fixility-gold);
+}
+
+    .btn-outline-primary:hover {
+        background-color: var(--fixility-gold);
+        border-color: var(--fixility-gold);
+        color: #000;
+    }
+
+.btn-outline-secondary {
+    color: var(--fixility-olive);
+    border-color: var(--fixility-olive);
+}
+
+    .btn-outline-secondary:hover {
+        background-color: var(--fixility-olive);
+        border-color: var(--fixility-olive);
+        color: #fff;
+    }
+
+.btn-outline-success,
+.btn-outline-info {
+    color: #fff;
+}
+
+/* Warning button */
+.btn-warning {
+    color: #000;
+    background-color: var(--fixility-gold);
+    border-color: var(--fixility-gold);
+}
+
+    .btn-warning:hover {
+        background-color: var(--fixility-gold-dark);
+        border-color: var(--fixility-gold-dark);
+        color: #000;
+    }
+
+/* ========================================== */
+/* FOCUS STATES                               */
+/* ========================================== */
+
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem rgba(207, 176, 21, 0.5);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--fixility-gold);
+    box-shadow: 0 0 0 0.2rem rgba(207, 176, 21, 0.25);
+}
+
+/* ========================================== */
+/* SIDEBAR & NAVBAR                           */
+/* ========================================== */
+
+/* Sidebar - Volledig zwart zonder gradient */
+.sidebar {
+    background: var(--fixility-black) !important;
+    background-image: none !important;
+}
+
+/* Nav scrollable */
+.nav-scrollable {
+    background: transparent !important;
+}
+
+/* Top row - Zwart met gouden border */
+.top-row,
+.top-row-edit {
+    background: var(--fixility-black) !important;
+    background-color: var(--fixility-black) !important;
+    border-bottom: 5px solid var(--fixility-gold) !important;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+/* Logo styling */
+.navbar-logo {
+    height: auto;
+    width: 100%;
+    max-width: 180px;
+    object-fit: contain;
+    transition: opacity 0.2s ease;
+}
+
+    .navbar-logo:hover {
+        opacity: 0.85;
+    }
+
+.navbar-brand {
+    padding: 0.5rem 1rem;
+}
+
+/* Nav items */
+.nav-item.px-3.mt-3 {
+    border-top: 1px solid rgba(207, 176, 21, 0.2);
+    padding-top: 1rem !important;
+}
+
+/* Collapsible header */
+.collapsible-header {
+    cursor: pointer;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    transition: background-color 0.2s ease;
+    user-select: none;
+    color: #fff;
+}
+
+    .collapsible-header:hover {
+        background: linear-gradient(90deg, rgba(207, 176, 21, 0.15) 0%, transparent 100%);
+        border-radius: 0.375rem;
+    }
+
+/* Nav link hover */
+.nav-item .nav-link {
+    color: rgba(255, 255, 255, 0.85);
+    transition: all 0.2s ease;
+}
+
+    .nav-item .nav-link:hover {
+        background: linear-gradient(90deg, rgba(207, 176, 21, 0.12) 0%, rgba(207, 176, 21, 0.05) 100%);
+        border-left: 3px solid var(--fixility-gold);
+        padding-left: calc(1rem - 3px);
+        border-radius: 0.375rem;
+        color: #fff;
+    }
+
+    /* Active nav link */
+    .nav-item .nav-link.active {
+        background: linear-gradient(90deg, rgba(207, 176, 21, 0.2) 0%, rgba(207, 176, 21, 0.08) 100%);
+        border-left: 4px solid var(--fixility-gold);
+        padding-left: calc(1rem - 4px);
+        border-radius: 0.375rem;
+        color: #fff;
+    }
+
+/* Submenu animation */
+.submenu {
+    animation: slideDown 0.2s ease-out;
+    overflow: hidden;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+
+    to {
+        opacity: 1;
+        max-height: 200px;
+    }
+}
+
+/* Icon spacing */
+.nav-link span[class^="bi-"] {
+    margin-right: 0.5rem;
+}
+
+/* Chevron icon */
+.bi-chevron-up,
+.bi-chevron-down {
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+}
+
+/* ========================================== */
+/* CARDS                                      */
+/* ========================================== */
+
 .card {
     transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
     .card:hover {
+        transform: translateY(-5px);
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
     }
 
-/* Extra shadow voor gekleurde cards */
+.hover-card {
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        border-color: rgba(207, 176, 21, 0.3);
+    }
+
+/* Gekleurde cards - behoud originele kleuren maar met betere shadow */
 .bg-danger:hover,
 .bg-primary:hover,
 .bg-success:hover,
@@ -69,11 +659,165 @@ h1:focus {
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
 }
 
-/* Button hover effects */
-.btn {
-    transition: transform 0.2s ease-in-out;
+/* Primary card (gebruik goud) */
+.bg-primary {
+    background-color: #0d6efd !important; /* Bootstrap default voor statistieken */
 }
 
-    .btn:hover {
-        transform: scale(1.05);
+/* ========================================== */
+/* VALIDATION & FORMS                         */
+/* ========================================== */
+
+.content {
+    padding-top: 1.1rem;
+}
+
+h1:focus {
+    outline: none;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid #e50000;
+}
+
+.validation-message {
+    color: #e50000;
+}
+
+.darker-border-checkbox.form-check-input {
+    border-color: #929292;
+}
+
+/* ========================================== */
+/* BADGES                                     */
+/* ========================================== */
+
+/* Badge met goud */
+.badge.bg-warning {
+    background-color: var(--fixility-gold) !important;
+    color: #000;
+}
+
+/* Spoed badge pulse */
+.badge.bg-danger {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
     }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* ========================================== */
+/* ALERTS                                     */
+/* ========================================== */
+
+.alert-warning {
+    background-color: rgba(207, 176, 21, 0.1);
+    border-color: var(--fixility-gold);
+    color: #856f11;
+}
+
+.blazor-error-boundary {
+    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
+    padding: 1rem 1rem 1rem 3.7rem;
+    color: white;
+}
+
+    .blazor-error-boundary::after {
+        content: "An error has occurred."
+    }
+
+/* ========================================== */
+/* TABLE                                      */
+/* ========================================== */
+
+.table-hover tbody tr:hover {
+    background-color: rgba(207, 176, 21, 0.05);
+}
+
+/* ========================================== */
+/* UTILITY CLASSES                            */
+/* ========================================== */
+
+/* Text colors */
+.text-accent {
+    color: var(--fixility-gold) !important;
+}
+
+.text-accent-dark {
+    color: var(--fixility-gold-dark) !important;
+}
+
+/* Background colors */
+.bg-accent {
+    background-color: var(--fixility-gold) !important;
+    color: #000;
+}
+
+.bg-accent-light {
+    background-color: rgba(207, 176, 21, 0.1) !important;
+}
+
+/* Border colors */
+.border-accent {
+    border-color: var(--fixility-gold) !important;
+}
+
+/* Hover utility */
+.hover-lift {
+    transition: transform 0.3s ease;
+}
+
+    .hover-lift:hover {
+        transform: translateY(-5px);
+    }
+
+/* Smooth transitions */
+.transition-all {
+    transition: all 0.3s ease;
+}
+
+/* ========================================== */
+/* RESPONSIVE                                 */
+/* ========================================== */
+
+/* Tablet */
+@media (max-width: 992px) {
+    .navbar-logo {
+        max-width: 160px;
+    }
+
+    .card:hover {
+        transform: translateY(-3px);
+    }
+}
+
+/* Mobiel */
+@media (max-width: 576px) {
+    .navbar-logo {
+        max-width: 140px;
+    }
+
+    .top-row-edit {
+        border-bottom: 3px solid var(--fixility-gold);
+    }
+
+    .btn {
+        font-size: 0.9rem;
+    }
+
+    .card:hover {
+        transform: none;
+    }
+}
+

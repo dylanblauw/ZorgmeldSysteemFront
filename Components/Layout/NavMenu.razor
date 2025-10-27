@@ -1,8 +1,10 @@
 ﻿@rendermode InteractiveServer
 
-<div class="top-row ps-3 navbar navbar-dark">
+<div class="top-row-edit ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">Fixility</a>
+        <a class="navbar-brand" href="">
+            <img src="/Img/Fixility.png" alt="Fixility" class="navbar-logo" />
+        </a>
     </div>
 </div>
 
@@ -13,16 +15,16 @@
         <!-- Home -->
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill" aria-hidden="true"></span> Home
+                <span class="bi-house-door-fill" aria-hidden="true"></span> Home
             </NavLink>
         </div>
 
         <!-- Tickets Section -->
         <div class="nav-item px-3 mt-3">
             <div class="nav-link text-white fw-bold collapsible-header" @onclick="() => ToggleSection(1)" @onclick:stopPropagation="true">
-                <span class="bi bi-ticket-perforated-fill me-2" aria-hidden="true"></span>
-                Tickets
-                <span class="bi @(expandedSections.Contains(1) ? "bi-chevron-up" : "bi-chevron-down") float-end"></span>
+                <span class="bi-ticket-perforated-fill me-2" aria-hidden="true"></span>
+                Tickets&nbsp;
+                <span class="@(expandedSections.Contains(1) ? "bi-chevron-up" : "bi-chevron-down") float-end"></span>
             </div>
         </div>
         @if (expandedSections.Contains(1))
@@ -30,12 +32,12 @@
             <div class="submenu">
                 <div class="nav-item px-3 ps-5">
                     <NavLink class="nav-link" href="ticket/create">
-                        <span class="bi bi-plus-circle" aria-hidden="true"></span> Nieuw Ticket
+                        <span class="bi-plus-circle" aria-hidden="true"></span> Nieuw Ticket
                     </NavLink>
                 </div>
                 <div class="nav-item px-3 ps-5">
                     <NavLink class="nav-link" href="tickets">
-                        <span class="bi bi-list-ul" aria-hidden="true"></span> Alle Tickets
+                        <span class="bi-list-ul" aria-hidden="true"></span> Alle Tickets
                     </NavLink>
                 </div>
             </div>
@@ -44,9 +46,9 @@
         <!-- Monteurs Section -->
         <div class="nav-item px-3 mt-3">
             <div class="nav-link text-white fw-bold collapsible-header" @onclick="() => ToggleSection(2)" @onclick:stopPropagation="true">
-                <span class="bi bi-person-gear me-2" aria-hidden="true"></span>
-                Monteurs
-                <span class="bi @(expandedSections.Contains(2) ? "bi-chevron-up" : "bi-chevron-down") float-end"></span>
+                <span class="bi-person-gear me-2" aria-hidden="true"></span>
+                Monteurs&nbsp;
+                <span class="@(expandedSections.Contains(2) ? "bi-chevron-up" : "bi-chevron-down") float-end"></span>
             </div>
         </div>
         @if (expandedSections.Contains(2))
@@ -54,12 +56,12 @@
             <div class="submenu">
                 <div class="nav-item px-3 ps-5">
                     <NavLink class="nav-link" href="mechanic/create">
-                        <span class="bi bi-plus-circle" aria-hidden="true"></span> Nieuwe Monteur
+                        <span class="bi-plus-circle" aria-hidden="true"></span> Nieuwe Monteur
                     </NavLink>
                 </div>
                 <div class="nav-item px-3 ps-5">
                     <NavLink class="nav-link" href="mechanics">
-                        <span class="bi bi-list-ul" aria-hidden="true"></span> Alle Monteurs
+                        <span class="bi-list-ul" aria-hidden="true"></span> Alle Monteurs
                     </NavLink>
                 </div>
             </div>
@@ -68,9 +70,9 @@
         <!-- Bedrijven Section -->
         <div class="nav-item px-3 mt-3">
             <div class="nav-link text-white fw-bold collapsible-header" @onclick="() => ToggleSection(3)" @onclick:stopPropagation="true">
-                <span class="bi bi-building-fill me-2" aria-hidden="true"></span>
-                Bedrijven
-                <span class="bi @(expandedSections.Contains(3) ? "bi-chevron-up" : "bi-chevron-down") float-end"></span>
+                <span class="bi-building-fill me-2" aria-hidden="true"></span>
+                Bedrijven&nbsp;
+                <span class="@(expandedSections.Contains(3) ? "bi-chevron-up" : "bi-chevron-down") float-end"></span>
             </div>
         </div>
         @if (expandedSections.Contains(3))
@@ -78,12 +80,12 @@
             <div class="submenu">
                 <div class="nav-item px-3 ps-5">
                     <NavLink class="nav-link" href="company/create">
-                        <span class="bi bi-plus-circle" aria-hidden="true"></span> Nieuw Bedrijf
+                        <span class="bi-plus-circle" aria-hidden="true"></span> Nieuw Bedrijf
                     </NavLink>
                 </div>
                 <div class="nav-item px-3 ps-5">
                     <NavLink class="nav-link" href="companies">
-                        <span class="bi bi-list-ul" aria-hidden="true"></span> Alle Bedrijven
+                        <span class="bi-list-ul" aria-hidden="true"></span> Alle Bedrijven
                     </NavLink>
                 </div>
             </div>
@@ -92,9 +94,9 @@
         <!-- Objecten Section -->
         <div class="nav-item px-3 mt-3">
             <div class="nav-link text-white fw-bold collapsible-header" @onclick="() => ToggleSection(4)" @onclick:stopPropagation="true">
-                <span class="bi bi-box-seam-fill me-2" aria-hidden="true"></span>
-                Objecten
-                <span class="bi @(expandedSections.Contains(4) ? "bi-chevron-up" : "bi-chevron-down") float-end"></span>
+                <span class="bi-box-seam-fill me-2" aria-hidden="true"></span>
+                Objecten&nbsp;
+                <span class="@(expandedSections.Contains(4) ? "bi-chevron-up" : "bi-chevron-down") float-end"></span>
             </div>
         </div>
         @if (expandedSections.Contains(4))
@@ -102,82 +104,18 @@
             <div class="submenu">
                 <div class="nav-item px-3 ps-5">
                     <NavLink class="nav-link" href="object/create">
-                        <span class="bi bi-plus-circle" aria-hidden="true"></span> Nieuw Object
+                        <span class="bi-plus-circle" aria-hidden="true"></span> Nieuw Object
                     </NavLink>
                 </div>
                 <div class="nav-item px-3 ps-5">
                     <NavLink class="nav-link" href="objects">
-                        <span class="bi bi-list-ul" aria-hidden="true"></span> Alle Objecten
+                        <span class="bi-list-ul" aria-hidden="true"></span> Alle Objecten
                     </NavLink>
                 </div>
             </div>
         }
     </nav>
 </div>
-
-<style>
-    /* Betere spacing tussen secties */
-    .nav-item.px-3.mt-3 {
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        padding-top: 1rem !important;
-    }
-
-    /* Collapsible header styling */
-    .collapsible-header {
-        cursor: pointer;
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
-        transition: background-color 0.2s ease;
-        user-select: none;
-    }
-
-        .collapsible-header:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 0.375rem;
-        }
-
-    /* Submenu animation */
-    .submenu {
-        animation: slideDown 0.2s ease-out;
-        overflow: hidden;
-    }
-
-    @@keyframes slideDown {
-        from {
-            opacity: 0;
-            max-height: 0;
-        }
-
-        to {
-            opacity: 1;
-            max-height: 200px;
-        }
-    }
-
-    /* Hover effect voor submenu items */
-    .nav-item.ps-5 .nav-link:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-        border-radius: 0.375rem;
-    }
-
-    /* Active state styling */
-    .nav-item .nav-link.active {
-        background-color: rgba(255, 255, 255, 0.15);
-        border-radius: 0.375rem;
-    }
-
-    /* Icon spacing */
-    .nav-link span[class^="bi-"] {
-        margin-right: 0.5rem;
-    }
-
-    /* Chevron icon */
-    .bi-chevron-up,
-    .bi-chevron-down {
-        font-size: 0.8rem;
-        transition: transform 0.2s ease;
-    }
-</style>
 
 @code {
     private HashSet<int> expandedSections = new HashSet<int>();
