@@ -326,7 +326,7 @@
                         <i class="bi bi-exclamation-triangle"></i> Deze actie kan niet ongedaan worden gemaakt.
                     </p>
                 </div>
-                @* <div class="modal-footer">
+                <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CancelDelete">Annuleren</button>
                     <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@isDeleting">
                         @if (isDeleting)
@@ -335,7 +335,7 @@
                         }
                         Verwijderen
                     </button>
-                </div> *@
+                </div>
             </div>
         </div>
     </div>
@@ -360,10 +360,10 @@
         isEditMode = Navigation.Uri.Contains("/edit/");
         await LoadObject();
 
-        // if (!isEditMode && objectDto != null)
-        // {
-        //     GenerateQRCode();
-        // }
+        if (!isEditMode && objectDto != null)
+        {
+            GenerateQRCode();
+        }
     }
 
     private async Task LoadObject()
@@ -383,15 +383,15 @@
         }
     }
 
-    // private void GenerateQRCode()
-    // {
-    //     if (objectDto != null)
-    //     {
-    //         // QR code bevat ObjectID in formaat "OBJ-{ID}"
-    //         string qrContent = $"OBJ-{objectDto.ObjectID}";
-    //         qrCodeBase64 = QRCodeService.GenerateQRCodeBase64(qrContent);
-    //     }
-    // }
+    private void GenerateQRCode()
+    {
+        if (objectDto != null)
+        {
+            // Gebruik de standaard GenerateObjectQRCode methode van de service
+            // Dit genereert format: "OBJECT:{ObjectID}"
+            qrCodeBase64 = QRCodeService.GenerateObjectQRCode(objectDto.ObjectID);
+        }
+    }
 
     private async Task HandleSubmit()
     {
@@ -480,36 +480,36 @@
         showDeleteConfirmation = false;
     }
 
-    // private async Task ConfirmDelete()
-    // {
-    //     if (objectDto == null) return;
+    private async Task ConfirmDelete()
+    {
+        if (objectDto == null) return;
 
-    //     isDeleting = true;
-    //     errorMessage = string.Empty;
+        isDeleting = true;
+        errorMessage = string.Empty;
 
-    //     try
-    //     {
-    //         bool success = await ObjectApiService.DeleteObjectAsync(objectDto.ObjectID);
+        try
+        {
+            bool success = await ObjectApiService.DeleteObjectAsync(objectDto.ObjectID);
 
-    //         if (success)
-    //         {
-    //             Navigation.NavigateTo("/objects");
-    //         }
-    //         else
-    //         {
-    //             errorMessage = "Fout bij verwijderen van object.";
-    //         }
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         errorMessage = $"Fout bij verwijderen: {ex.Message}";
-    //     }
-    //     finally
-    //     {
-    //         isDeleting = false;
-    //         showDeleteConfirmation = false;
-    //     }
-    // }
+            if (success)
+            {
+                Navigation.NavigateTo("/objects");
+            }
+            else
+            {
+                errorMessage = "Fout bij verwijderen van object.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij verwijderen: {ex.Message}";
+        }
+        finally
+        {
+            isDeleting = false;
+            showDeleteConfirmation = false;
+        }
+    }
 
     private void GoBack()
     {

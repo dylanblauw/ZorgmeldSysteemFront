@@ -1,0 +1,317 @@
+@namespace ZorgmeldSysteem.Blazor.Components.Shared
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
+
+<div class="qr-scanner-modal @(IsVisible ? "show" : "")" @onclick="Close">
+    <div class="modal-dialog modal-dialog-centered" @onclick:stopPropagation="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-qr-code-scan"></i> Scan QR Code
+                </h5>
+                <button type="button" class="btn-close" @onclick="Close"></button>
+            </div>
+            <div class="modal-body">
+                @if (!string.IsNullOrEmpty(errorMessage))
+
+                {
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> @errorMessage
+                    </div>
+                }
+
+                @if (isScanning)
+
+                {
+                    <div class="video-container">
+                        <video id="qr-video" autoplay playsinline></video>
+                        <div class="scanner-overlay">
+                            <div class="scanner-box"></div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <div class="spinner-border text-primary me-2" role="status">
+                            <span class="visually-hidden">Scannen...</span>
+                        </div>
+                        <span>Houd de QR code voor de camera...</span>
+                    </div>
+                }
+
+                else
+
+                {
+                    <div class="text-center p-4">
+                        <i class="bi bi-camera-fill display-1 text-muted mb-3"></i>
+                        <p>Klik op "Start Scannen" om de camera te activeren</p>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(scannedCode))
+
+                {
+                    <div class="alert alert-success mt-3">
+                        <i class="bi bi-check-circle"></i> QR Code gescand!
+                        <br />
+                        <small class="font-monospace">@scannedCode</small>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                @if (!isScanning)
+
+                {
+                    <button class="btn btn-primary" @onclick="StartScanning">
+                        <i class="bi bi-camera"></i> Start Scannen
+                    </button>
+                }
+
+                else
+
+                {
+                    <button class="btn btn-warning" @onclick="StopScanning">
+                        <i class="bi bi-stop-circle"></i> Stop Scannen
+                    </button>
+                }
+                <button class="btn btn-secondary" @onclick="Close">Sluiten</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .qr-scanner-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1050;
+    }
+
+        .qr-scanner-modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+    .video-container {
+        position: relative;
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        background-color: #000;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    #qr-video {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    .scanner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    .scanner-box {
+        width: 250px;
+        height: 250px;
+        border: 3px solid #00ff00;
+        border-radius: 8px;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        animation: scanner-pulse 2s ease-in-out infinite;
+    }
+
+    @@keyframes scanner-pulse {
+        0%, 100% {
+            border-color: #00ff00;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px #00ff00;
+        }
+
+        50% {
+            border-color: #00cc00;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 40px #00ff00;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+
+    [Parameter] public EventCallback<string> OnCodeScanned { get; set; }
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+
+
+    private bool isScanning = false;
+
+    private string errorMessage = string.Empty;
+
+    private string scannedCode = string.Empty;
+
+    private IJSObjectReference? jsModule;
+
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+
+    {
+
+        if (firstRender)
+
+        {
+
+            jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/qrScanner.js");
+
+        }
+
+    }
+
+
+
+    private async Task StartScanning()
+
+    {
+
+        try
+
+        {
+
+            errorMessage = string.Empty;
+
+            scannedCode = string.Empty;
+
+            isScanning = true;
+
+
+
+            if (jsModule != null)
+
+            {
+
+                await jsModule.InvokeVoidAsync("startScanning", DotNetObjectReference.Create(this));
+
+            }
+
+        }
+
+        catch (Exception ex)
+
+        {
+
+            errorMessage = $"Kon camera niet starten: {ex.Message}";
+
+            isScanning = false;
+
+        }
+
+    }
+
+
+
+    private async Task StopScanning()
+
+    {
+
+        try
+
+        {
+
+            if (jsModule != null)
+
+            {
+
+                await jsModule.InvokeVoidAsync("stopScanning");
+
+            }
+
+        }
+
+        catch { }
+
+        finally
+
+        {
+
+            isScanning = false;
+
+        }
+
+    }
+
+
+
+    [JSInvokable]
+
+    public async Task OnQRCodeDetected(string code)
+
+    {
+
+        scannedCode = code;
+
+        await StopScanning();
+
+        await OnCodeScanned.InvokeAsync(code);
+
+        StateHasChanged();
+
+    }
+
+
+
+    [JSInvokable]
+
+    public void OnScanError(string error)
+
+    {
+
+        errorMessage = error;
+
+        isScanning = false;
+
+        StateHasChanged();
+
+    }
+
+
+
+    private async Task Close()
+
+    {
+
+        await StopScanning();
+
+        await OnClose.InvokeAsync();
+
+    }
+
+
+
+    public async ValueTask DisposeAsync()
+
+    {
+
+        await StopScanning();
+
+        if (jsModule != null)
+
+        {
+
+            await jsModule.DisposeAsync();
+
+        }
+
+    }
+}

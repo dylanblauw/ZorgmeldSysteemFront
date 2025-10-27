@@ -12,22 +12,23 @@ namespace ZorgmeldSysteem.Blazor.Services.Api
             _httpClient = httpClient;
         }
 
+        // Haal één object op via ID (belangrijk voor QR scanning!)
+        public async Task<ObjectDto?> GetObjectByIdAsync(int objectId)
+        {
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<ObjectDto>($"api/object/{objectId}");
+            }
+            catch (HttpRequestException)
+            {
+                return null;
+            }
+        }
+
         // Haal alle objecten op
         public async Task<List<ObjectDto>> GetAllObjectsAsync()
         {
             return await _httpClient.GetFromJsonAsync<List<ObjectDto>>("api/object") ?? new List<ObjectDto>();
-        }
-
-        // Haal één object op
-        public async Task<ObjectDto?> GetObjectByIdAsync(int objectId)
-        {
-            return await _httpClient.GetFromJsonAsync<ObjectDto>($"api/object/{objectId}");
-        }
-
-        // Haal object op via code
-        public async Task<ObjectDto?> GetObjectByCodeAsync(string objectCode)
-        {
-            return await _httpClient.GetFromJsonAsync<ObjectDto>($"api/object/code/{objectCode}");
         }
 
         // Haal objecten op per bedrijf
@@ -36,39 +37,54 @@ namespace ZorgmeldSysteem.Blazor.Services.Api
             return await _httpClient.GetFromJsonAsync<List<ObjectDto>>($"api/object/company/{companyId}") ?? new List<ObjectDto>();
         }
 
-        // Haal unieke locaties op per bedrijf
+        // Haal locaties op per bedrijf
         public async Task<List<string>> GetLocationsByCompanyAsync(int companyId)
         {
             return await _httpClient.GetFromJsonAsync<List<string>>($"api/object/company/{companyId}/locations") ?? new List<string>();
         }
 
-        // Haal objecten op die onderhoud nodig hebben
-        public async Task<List<ObjectDto>> GetObjectsDueForMaintenanceAsync()
-        {
-            return await _httpClient.GetFromJsonAsync<List<ObjectDto>>("api/object/maintenance/due") ?? new List<ObjectDto>();
-        }
-
         // Maak nieuw object aan
         public async Task<ObjectDto?> CreateObjectAsync(CreateObjectDto createDto)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/object", createDto);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<ObjectDto>();
+            try
+            {
+                HttpResponseMessage response = await _httpClient.PostAsJsonAsync("api/object", createDto);
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadFromJsonAsync<ObjectDto>();
+            }
+            catch (HttpRequestException)
+            {
+                return null;
+            }
         }
 
-        // Update bestaand object
+        // Update object
         public async Task<ObjectDto?> UpdateObjectAsync(int objectId, UpdateObjectDto updateDto)
         {
-            var response = await _httpClient.PutAsJsonAsync($"api/object/{objectId}", updateDto);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<ObjectDto>();
+            try
+            {
+                HttpResponseMessage response = await _httpClient.PutAsJsonAsync($"api/object/{objectId}", updateDto);
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadFromJsonAsync<ObjectDto>();
+            }
+            catch (HttpRequestException)
+            {
+                return null;
+            }
         }
 
         // Verwijder object
-        public async Task DeleteObjectAsync(int objectId)
+        public async Task<bool> DeleteObjectAsync(int objectId)
         {
-            var response = await _httpClient.DeleteAsync($"api/object/{objectId}");
-            response.EnsureSuccessStatusCode();
+            try
+            {
+                HttpResponseMessage response = await _httpClient.DeleteAsync($"api/object/{objectId}");
+                return response.IsSuccessStatusCode;
+            }
+            catch (HttpRequestException)
+            {
+                return false;
+            }
         }
     }
 }

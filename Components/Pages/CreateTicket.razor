@@ -6,19 +6,27 @@
 @using ZorgmeldSysteem.Blazor.Models.Enums
 @using ZorgmeldSysteem.Blazor.Services;
 @using ZorgmeldSysteem.Blazor.Services.Api
-@using ZorgmeldSysteem.Blazor.ViewModels
+@using ZorgmeldSysteem.Blazor.Components.Shared
 @inject TicketApiService ApiService
 @inject ObjectApiService ObjectApiService
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
-En in OnCompanyChangedHandler:
 
 <PageTitle>Nieuwe Ticket Aanmaken</PageTitle>
 
 <h3>Nieuwe Ticket Aanmaken</h3>
-<button type="button" class="btn btn-outline-primary mb-3" @onclick="ScanQRCode">
-    <i class="bi bi-qr-code"></i> Scan QR-Code
-</button>
+
+<div class="mb-3">
+    <button type="button" class="btn btn-outline-primary" @onclick="OpenQRScanner">
+        <i class="bi bi-qr-code-scan"></i> Scan QR-Code
+    </button>
+    @if (!string.IsNullOrEmpty(qrScanMessage))
+    {
+        <div class="alert alert-info mt-2">
+            <i class="bi bi-check-circle"></i> @qrScanMessage
+        </div>
+    }
+</div>
 
 @if (!string.IsNullOrEmpty(errorMessage))
 {
@@ -43,15 +51,14 @@ else
             <div class="col-md-6">
                 <div class="mb-3">
                     <label class="form-label">Bedrijf *</label>
-                    <select class="form-select" @onchange="OnCompanyChangedHandler">
+                    <select class="form-select" @onchange="OnCompanyChangedHandler" value="@newTicket.CompanyID">
                         <option value="0">-- Selecteer bedrijf --</option>
                         @foreach (var company in companies)
                         {
-                            <option value="@company.CompanyID" selected="@(company.CompanyID == newTicket.CompanyID)">@company.Name</option>
+                            <option value="@company.CompanyID">@company.Name</option>
                         }
                     </select>
                 </div>
-
 
                 <div class="mb-3">
                     <label class="form-label">Locatie</label>
@@ -97,12 +104,9 @@ else
                         }
                     </InputSelect>
                 </div>
-
-
             </div>
 
             <div class="col-md-6">
-
                 <div class="mb-3 form-check form-switch">
                     <InputCheckbox @bind-Value="newTicket.IsUrgent"
                                    class="form-check-input"
@@ -112,6 +116,7 @@ else
                         Directe aandacht nodig
                     </label>
                 </div>
+
                 <div class="mb-3">
                     <label class="form-label">Prioriteit *</label>
                     <InputSelect class="form-select" @bind-Value="newTicket.Priority">
@@ -139,7 +144,6 @@ else
             </div>
         </div>
 
-
         <div class="mb-3">
             <label class="form-label">Beschrijving *</label>
             <InputTextArea class="form-control" @bind-Value="newTicket.Description" rows="4" placeholder="Beschrijf het probleem..." />
@@ -166,6 +170,11 @@ else
     </EditForm>
 }
 
+<!-- QR Scanner Component -->
+<QRCodeScanner IsVisible="@showQRScanner"
+               OnCodeScanned="HandleQRCodeScanned"
+               OnClose="CloseQRScanner" />
+
 @code {
     private CreateTicketDto newTicket = new();
     private List<CompanyDto> companies = new();
@@ -173,11 +182,12 @@ else
     private List<ObjectDto> availableObjects = new();
     private List<ObjectDto> filteredObjects = new();
     private List<string> availableLocations = new();
-    private CreateTicketViewModel viewModel = new();
 
     private bool isLoading = true;
     private bool isSaving = false;
+    private bool showQRScanner = false;
     private string errorMessage = string.Empty;
+    private string qrScanMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -196,6 +206,116 @@ else
         }
     }
 
+    private void OpenQRScanner()
+    {
+        showQRScanner = true;
+        qrScanMessage = string.Empty;
+    }
+
+    private void CloseQRScanner()
+    {
+        showQRScanner = false;
+    }
+
+    private async Task HandleQRCodeScanned(string qrCode)
+    {
+        showQRScanner = false;
+
+        try
+        {
+            // QR code bevat ObjectID (bijvoorbeeld "OBJ-123" of gewoon "123")
+            // Haal het ID eruit
+            int objectId = ExtractObjectIdFromQRCode(qrCode);
+
+            if (objectId > 0)
+            {
+                // Haal het object op via API
+                var scannedObject = await ObjectApiService.GetObjectByIdAsync(objectId);
+
+                if (scannedObject != null)
+                {
+                    // Vul automatisch de velden in
+                    newTicket.CompanyID = scannedObject.CompanyID;
+                    newTicket.ObjectId = scannedObject.ObjectID;
+                    newTicket.Location = scannedObject.Location;
+
+                    // Neem standaard prioriteit en reactietijd over
+                    newTicket.Priority = scannedObject.DefaultPriority;
+                    newTicket.ReactionTime = scannedObject.DefaultReactionTime;
+
+                    // Laad bedrijfsgegevens
+                    await LoadCompanySpecificData(newTicket.CompanyID);
+
+                    qrScanMessage = $"✅ Object gescand: {scannedObject.Name} - {scannedObject.Location}";
+
+                    // Scroll naar boven
+                    StateHasChanged();
+                }
+                else
+                {
+                    errorMessage = "Object niet gevonden in het systeem.";
+                }
+            }
+            else
+            {
+                errorMessage = "Ongeldige QR code. Kon geen object ID vinden.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij verwerken van QR code: {ex.Message}";
+        }
+    }
+
+    private int ExtractObjectIdFromQRCode(string qrCode)
+    {
+        // QR code kan verschillende formaten hebben:
+        // - "123" (gewoon het ID)
+        // - "OBJ-123" (met prefix - ObjectDetails formaat)
+        // - "OBJECT:123" (met prefix - QRCodeService formaat)
+        // - "PREVIEW:OBJ-001" (preview format)
+        // - "{"ObjectID":123,...}" (JSON)
+
+        // Probeer eerst als gewoon nummer
+        if (int.TryParse(qrCode, out int id))
+        {
+            return id;
+        }
+
+        // Probeer met OBJECT: prefix (standaard QRCodeService formaat)
+        if (qrCode.StartsWith("OBJECT:", StringComparison.OrdinalIgnoreCase))
+        {
+            var numberPart = qrCode.Substring(7); // "OBJECT:" is 7 karakters
+            if (int.TryParse(numberPart, out id))
+            {
+                return id;
+            }
+        }
+
+        // Probeer met OBJ- prefix (alternatief formaat)
+        if (qrCode.StartsWith("OBJ-", StringComparison.OrdinalIgnoreCase))
+        {
+            var numberPart = qrCode.Substring(4);
+            if (int.TryParse(numberPart, out id))
+            {
+                return id;
+            }
+        }
+
+        // Probeer als JSON (voor uitgebreidere QR codes)
+        try
+        {
+            var json = System.Text.Json.JsonDocument.Parse(qrCode);
+            if (json.RootElement.TryGetProperty("ObjectID", out var objIdProp))
+            {
+                return objIdProp.GetInt32();
+            }
+        }
+        catch { }
+
+        return 0;
+    }
+
     private async Task OnCompanyChangedHandler(ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out int companyId))
@@ -204,23 +324,7 @@ else
 
             if (companyId > 0)
             {
-                try
-                {
-                    var locationsTask = ObjectApiService.GetLocationsByCompanyAsync(companyId);
-                    var objectsTask = ObjectApiService.GetObjectsByCompanyAsync(companyId);
-
-                    await Task.WhenAll(locationsTask, objectsTask);
-
-                    availableLocations = await locationsTask;
-                    availableObjects = await objectsTask;
-                    filteredObjects = new List<ObjectDto>(availableObjects);
-
-                    newTicket.Location = string.Empty;
-                }
-                catch (Exception ex)
-                {
-                    errorMessage = $"Fout bij laden van objecten: {ex.Message}";
-                }
+                await LoadCompanySpecificData(companyId);
             }
             else
             {
@@ -229,6 +333,31 @@ else
                 filteredObjects.Clear();
                 newTicket.Location = string.Empty;
             }
+        }
+    }
+
+    private async Task LoadCompanySpecificData(int companyId)
+    {
+        try
+        {
+            var locationsTask = ObjectApiService.GetLocationsByCompanyAsync(companyId);
+            var objectsTask = ObjectApiService.GetObjectsByCompanyAsync(companyId);
+
+            await Task.WhenAll(locationsTask, objectsTask);
+
+            availableLocations = await locationsTask;
+            availableObjects = await objectsTask;
+            filteredObjects = new List<ObjectDto>(availableObjects);
+
+            // Als location al is ingesteld (bijv. door QR scan), filter de objecten
+            if (!string.IsNullOrWhiteSpace(newTicket.Location))
+            {
+                FilterObjectsByLocation();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij laden van objecten: {ex.Message}";
         }
     }
 
@@ -280,11 +409,6 @@ else
         {
             isSaving = false;
         }
-    }
-
-    private void ScanQRCode()
-    {
-        errorMessage = "QR-code scanning is nog niet geïmplementeerd";
     }
 
     private void UploadPhoto()

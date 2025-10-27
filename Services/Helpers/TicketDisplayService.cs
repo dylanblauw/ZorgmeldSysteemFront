@@ -3,9 +3,9 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
 {
     public class TicketDisplayService
     {
-        /// <summary>
+
         /// Geeft de Nederlandse naam van een ticket status
-        /// </summary>
+
         public string GetStatusDisplayName(TicketStatus status)
         {
             return status switch
@@ -26,9 +26,9 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
             };
         }
 
-        /// <summary>
+
         /// Geeft de Nederlandse naam van een prioriteit
-        /// </summary>
+
         public string GetPriorityDisplayName(Priority priority)
         {
             return priority switch
@@ -42,9 +42,9 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
             };
         }
 
-        /// <summary>
+
         /// Geeft de CSS class voor een status badge
-        /// </summary>
+
         public string GetStatusBadgeClass(TicketStatus status)
         {
             return status switch
@@ -65,9 +65,8 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
             };
         }
 
-        /// <summary>
         /// Geeft de CSS class voor een prioriteit badge
-        /// </summary>
+
         public string GetPriorityBadgeClass(Priority priority)
         {
             return priority switch
@@ -81,9 +80,9 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
             };
         }
 
-        /// <summary>
+
         /// Geeft het Bootstrap icoon voor een prioriteit
-        /// </summary>
+
         public string GetPriorityIcon(Priority priority)
         {
             return priority switch
@@ -97,9 +96,9 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
             };
         }
 
-        /// <summary>
+
         /// Controleert of een status als "actief" beschouwd moet worden
-        /// </summary>
+
         public bool IsActiveStatus(TicketStatus status)
         {
             return status == TicketStatus.Open ||
@@ -108,9 +107,9 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
                    status == TicketStatus.Scheduled;
         }
 
-        /// <summary>
+
         /// Controleert of een prioriteit als "urgent" beschouwd moet worden
-        /// </summary>
+
         public bool IsUrgentPriority(Priority priority)
         {
             return priority == Priority.Urgent || priority == Priority.Critical;

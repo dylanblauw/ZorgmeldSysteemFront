@@ -4,9 +4,9 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
 {
     public class MechanicDisplayService
     {
-        /// <summary>
+
         /// Geeft de Nederlandse naam van een monteur type
-        /// </summary>
+
         public string GetMechanicTypeDisplayName(MechanicType type)
         {
             return type switch
@@ -26,9 +26,9 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
             };
         }
 
-        /// <summary>
+
         /// Geeft de CSS class voor een monteur type badge
-        /// </summary>
+ 
         public string GetMechanicTypeBadgeClass(MechanicType type)
         {
             return type switch
@@ -52,9 +52,9 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
             };
         }
 
-        /// <summary>
-        /// Geeft het Bootstrap icoon voor een monteur type
-        /// </summary>
+
+
+
         public string GetMechanicTypeIcon(MechanicType type)
         {
             return type switch
@@ -74,9 +74,9 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
             };
         }
 
-        /// <summary>
+
         /// Controleert of een monteur type intern is
-        /// </summary>
+
         public bool IsInternalType(MechanicType type)
         {
             return type == MechanicType.InternalGeneral ||
@@ -85,17 +85,17 @@ namespace ZorgmeldSysteem.Blazor.Services.Helpers
                    type == MechanicType.InternalHVAC;
         }
 
-        /// <summary>
+
         /// Controleert of een monteur type extern is
-        /// </summary>
+
         public bool IsExternalType(MechanicType type)
         {
             return !IsInternalType(type);
         }
 
-        /// <summary>
+
         /// Geeft een korte beschrijving van het specialisme
-        /// </summary>
+
         public string GetSpecialismShortName(MechanicType type)
         {
             return type switch
