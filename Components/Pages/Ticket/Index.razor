@@ -5,6 +5,10 @@
 @using ZorgmeldSysteem.Blazor.Services
 @using ZorgmeldSysteem.Blazor.Services.Helpers
 @using ZorgmeldSysteem.Blazor.ViewModels
+@using ZorgmeldSysteem.Blazor.Components.Common
+{
+    
+}
 @inject Services.Api.TicketApiService TicketApiService
 @inject TicketDisplayService DisplayService
 @inject NavigationManager Navigation
@@ -30,12 +34,7 @@
 
     @if (viewModel.IsLoading)
     {
-        <div class="text-center my-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Laden...</span>
-            </div>
-            <p class="mt-3">Tickets laden...</p>
-        </div>
+        <LoadingSpinner Message="Monteurs laden..." />
     }
     else
     {

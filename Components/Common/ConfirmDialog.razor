@@ -1,0 +1,64 @@
+﻿@*
+    Herbruikbare bevestigings dialoog
+    Gebruik:
+    <ConfirmDialog
+        Show="@showDialog"
+        Title="Verwijderen"
+        Message="Weet je het zeker?"
+        ConfirmText="Ja, verwijderen"
+        ConfirmButtonType="danger"
+        OnConfirm="HandleConfirm"
+        OnCancel="HandleCancel" />
+*@
+
+@if (Show)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Title</h5>
+                    <button type="button" class="btn-close" @onclick="HandleCancel" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(Icon))
+                    {
+                        <div class="text-center mb-3">
+                            <i class="bi bi-@Icon text-@IconColor" style="font-size: 3rem;"></i>
+                        </div>
+                    }
+                    <p>@Message</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HandleCancel" disabled="@IsProcessing">
+                        @CancelText
+                    </button>
+                    <button type="button" class="btn btn-@ConfirmButtonType" @onclick="HandleConfirm" disabled="@IsProcessing">
+                        @if (IsProcessing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        @ConfirmText
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public string Title { get; set; } = "Bevestigen";
+    [Parameter] public string Message { get; set; } = string.Empty;
+    [Parameter] public string ConfirmText { get; set; } = "Bevestigen";
+    [Parameter] public string CancelText { get; set; } = "Annuleren";
+    [Parameter] public string ConfirmButtonType { get; set; } = "primary";
+    [Parameter] public string Icon { get; set; } = string.Empty;
+    [Parameter] public string IconColor { get; set; } = "primary";
+    [Parameter] public bool IsProcessing { get; set; }
+    [Parameter] public EventCallback OnConfirm { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private async Task HandleConfirm() => await OnConfirm.InvokeAsync();
+    private async Task HandleCancel() => await OnCancel.InvokeAsync();
+}
