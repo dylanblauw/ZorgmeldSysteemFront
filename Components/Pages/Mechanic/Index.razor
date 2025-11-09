@@ -1,4 +1,4 @@
-﻿@page "/mechanics"
+﻿@page "/mechanic"
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Mechanic
 @using ZorgmeldSysteem.Blazor.Models.Enums
@@ -289,7 +289,7 @@
 
     private void EditMechanic(int mechanicId)
     {
-        Navigation.NavigateTo($"/mechanic/edit/{mechanicId}");
+        Navigation.NavigateTo($"/mechanic/{mechanicId}");
     }
 
     private void GoToCreateMechanic()

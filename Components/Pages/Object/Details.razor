@@ -237,7 +237,6 @@
                 </EditForm>
             </div>
 
-            <!-- Rechter kolom: QR Code en Acties -->
             <div class="col-md-4">
                 <!-- QR Code Card -->
                 <div class="card mb-3">
@@ -264,7 +263,7 @@
                     </div>
                 </div>
 
-                <!-- Acties Card -->
+  
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0">Snelle Acties</h5>
@@ -387,8 +386,6 @@
     {
         if (objectDto != null)
         {
-            // Gebruik de standaard GenerateObjectQRCode methode van de service
-            // Dit genereert format: "OBJECT:{ObjectID}"
             qrCodeBase64 = QRCodeService.GenerateObjectQRCode(objectDto.ObjectID);
         }
     }
@@ -414,7 +411,7 @@
                     NextMaintenance = objectDto.NextMaintenance,
                     DefaultPriority = objectDto.DefaultPriority,
                     DefaultReactionTime = objectDto.DefaultReactionTime,
-                    ChangedBy = "Gebruiker" // TODO: Vervang met echte gebruikersnaam
+                    ChangedBy = "Gebruiker"
                 };
 
             var result = await ObjectApiService.UpdateObjectAsync(objectDto.ObjectID, updateDto);
@@ -467,7 +464,7 @@
 
     private void ViewTickets()
     {
-        Navigation.NavigateTo($"/tickets?objectId={ObjectId}");
+        Navigation.NavigateTo($"/ticket?objectId={ObjectId}");
     }
 
     private void ShowDeleteConfirmation()
@@ -493,7 +490,7 @@
 
             if (success)
             {
-                Navigation.NavigateTo("/objects");
+                Navigation.NavigateTo("/object");
             }
             else
             {
@@ -513,6 +510,6 @@
 
     private void GoBack()
     {
-        Navigation.NavigateTo("/objects");
+        Navigation.NavigateTo("/object");
     }
 }
