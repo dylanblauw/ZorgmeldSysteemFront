@@ -1,27 +1,26 @@
 ﻿@page "/object/{ObjectId:int}"
 @page "/object/edit/{ObjectId:int}"
+@using ZorgmeldSysteem.Blazor.ViewModels.Object
+@using ZorgmeldSysteem.Blazor.Components.Common
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Object
-@using ZorgmeldSysteem.Blazor.Models.DTOs.Company
 @using ZorgmeldSysteem.Blazor.Models.Enums
 @using ZorgmeldSysteem.Blazor.Services.Api
 @using ZorgmeldSysteem.Blazor.Services.Business
 @inject ObjectApiService ObjectApiService
-@inject CompanyApiService CompanyApiService
 @inject QRCodeService QRCodeService
 @inject NavigationManager Navigation
+@implements IDisposable
 @rendermode InteractiveServer
 
-<PageTitle>@(isEditMode ? "Object Bewerken" : "Object Details")</PageTitle>
+<PageTitle>@(viewModel.Object?.ObjectCode ?? "Object Details")</PageTitle>
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>
-            @(isEditMode ? $"Object Bewerken: {objectDto?.ObjectCode}" : $"Object Details: {objectDto?.ObjectCode}")
-        </h3>
+        <h3>@(viewModel.IsEditMode ? "Object Bewerken" : "Object Details")</h3>
         <div>
-            @if (!isEditMode && objectDto != null)
+            @if (!viewModel.IsEditMode && viewModel.Object != null)
             {
-                <button class="btn btn-warning me-2" @onclick="EnableEditMode">
+                <button class="btn btn-warning me-2" @onclick="viewModel.EnableEditMode">
                     <i class="bi bi-pencil"></i> Bewerken
                 </button>
             }
@@ -31,37 +30,28 @@
         </div>
     </div>
 
-    @if (!string.IsNullOrEmpty(errorMessage))
-    {
-        <div class="alert alert-danger">@errorMessage</div>
-    }
+    <AlertMessage Message="@viewModel.ErrorMessage" Type="danger" Icon="exclamation-triangle" />
+    <AlertMessage Message="@viewModel.SuccessMessage" Type="success" Icon="check-circle" />
 
-    @if (!string.IsNullOrEmpty(successMessage))
+    @if (viewModel.IsLoading)
     {
-        <div class="alert alert-success">@successMessage</div>
+        <LoadingSpinner Message="Object laden..." />
     }
-
-    @if (isLoading)
+    else if (viewModel.Object == null)
     {
-        <div class="text-center my-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-3">Object laden...</p>
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> Object niet gevonden.
         </div>
-    }
-    else if (objectDto == null)
-    {
-        <div class="alert alert-warning">Object niet gevonden.</div>
     }
     else
     {
         <div class="row">
             <!-- Linker kolom: Formulier -->
             <div class="col-md-8">
-                <EditForm Model="@objectDto" OnValidSubmit="HandleSubmit">
+                <EditForm Model="@viewModel.Object" OnValidSubmit="HandleSubmit">
                     <DataAnnotationsValidator />
-                    <ValidationSummary />
 
-                    <div class="card">
+                    <div class="card mb-3">
                         <div class="card-header">
                             <h5 class="mb-0">Object Informatie</h5>
                         </div>
@@ -70,48 +60,49 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Bedrijf *</label>
-                                        @if (isEditMode)
+                                        <input type="text" class="form-control" value="@viewModel.Object.CompanyName" readonly />
+                                        @if (viewModel.IsEditMode)
                                         {
-                                            <input type="text" class="form-control" value="@objectDto.CompanyName" readonly />
                                             <small class="text-muted">Bedrijf kan niet gewijzigd worden</small>
-                                        }
-                                        else
-                                        {
-                                            <input type="text" class="form-control" value="@objectDto.CompanyName" readonly />
                                         }
                                     </div>
 
                                     <div class="mb-3">
                                         <label class="form-label">Naam *</label>
-                                        <InputText class="form-control" @bind-Value="objectDto.Name" readonly="@(!isEditMode)" />
+                                        <InputText class="form-control" @bind-Value="viewModel.Object.Name"
+                                                   readonly="@(!viewModel.IsEditMode)" />
                                     </div>
 
                                     <div class="mb-3">
                                         <label class="form-label">Locatie *</label>
-                                        <InputText class="form-control" @bind-Value="objectDto.Location" readonly="@(!isEditMode)" />
+                                        <InputText class="form-control" @bind-Value="viewModel.Object.Location"
+                                                   readonly="@(!viewModel.IsEditMode)" />
                                     </div>
 
                                     <div class="mb-3">
                                         <label class="form-label">Merk</label>
-                                        <InputText class="form-control" @bind-Value="objectDto.Brand" readonly="@(!isEditMode)" />
+                                        <InputText class="form-control" @bind-Value="viewModel.Object.Brand"
+                                                   readonly="@(!viewModel.IsEditMode)" />
                                     </div>
                                 </div>
 
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Object Code</label>
-                                        <input type="text" class="form-control" value="@objectDto.ObjectCode" readonly />
+                                        <input type="text" class="form-control" value="@viewModel.Object.ObjectCode" readonly />
                                         <small class="text-muted">Automatisch gegenereerd</small>
                                     </div>
 
                                     <div class="mb-3">
                                         <label class="form-label">Model</label>
-                                        <InputText class="form-control" @bind-Value="objectDto.Model" readonly="@(!isEditMode)" />
+                                        <InputText class="form-control" @bind-Value="viewModel.Object.Model"
+                                                   readonly="@(!viewModel.IsEditMode)" />
                                     </div>
 
                                     <div class="mb-3">
                                         <label class="form-label">Serienummer</label>
-                                        <InputText class="form-control" @bind-Value="objectDto.SerialNumber" readonly="@(!isEditMode)" />
+                                        <InputText class="form-control" @bind-Value="viewModel.Object.SerialNumber"
+                                                   readonly="@(!viewModel.IsEditMode)" />
                                     </div>
                                 </div>
                             </div>
@@ -120,14 +111,14 @@
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label">Installatie Datum</label>
-                                        @if (isEditMode)
+                                        @if (viewModel.IsEditMode)
                                         {
-                                            <InputDate class="form-control" @bind-Value="objectDto.InstallationDate" />
+                                            <InputDate class="form-control" @bind-Value="viewModel.Object.InstallationDate" />
                                         }
                                         else
                                         {
                                             <input type="text" class="form-control"
-                                                   value="@(objectDto.InstallationDate?.ToString("dd-MM-yyyy") ?? "-")" readonly />
+                                                   value="@(viewModel.Object.InstallationDate?.ToString("dd-MM-yyyy") ?? "-")" readonly />
                                         }
                                     </div>
                                 </div>
@@ -135,14 +126,14 @@
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label">Laatste Onderhoud</label>
-                                        @if (isEditMode)
+                                        @if (viewModel.IsEditMode)
                                         {
-                                            <InputDate class="form-control" @bind-Value="objectDto.LastMaintenance" />
+                                            <InputDate class="form-control" @bind-Value="viewModel.Object.LastMaintenance" />
                                         }
                                         else
                                         {
                                             <input type="text" class="form-control"
-                                                   value="@(objectDto.LastMaintenance?.ToString("dd-MM-yyyy") ?? "-")" readonly />
+                                                   value="@(viewModel.Object.LastMaintenance?.ToString("dd-MM-yyyy") ?? "-")" readonly />
                                         }
                                     </div>
                                 </div>
@@ -150,15 +141,16 @@
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label">Volgend Onderhoud</label>
-                                        @if (isEditMode)
+                                        @if (viewModel.IsEditMode)
                                         {
-                                            <InputDate class="form-control" @bind-Value="objectDto.NextMaintenance" />
+                                            <InputDate class="form-control" @bind-Value="viewModel.Object.NextMaintenance" />
                                         }
                                         else
                                         {
-                                            var isOverdue = objectDto.NextMaintenance.HasValue && objectDto.NextMaintenance.Value < DateTime.Now;
+                                            var isOverdue = viewModel.Object.NextMaintenance.HasValue &&
+                                            viewModel.Object.NextMaintenance.Value < DateTime.Now;
                                             <input type="text" class="form-control @(isOverdue ? "text-danger" : "")"
-                                                   value="@(objectDto.NextMaintenance?.ToString("dd-MM-yyyy") ?? "-")" readonly />
+                                                   value="@(viewModel.Object.NextMaintenance?.ToString("dd-MM-yyyy") ?? "-")" readonly />
                                             @if (isOverdue)
                                             {
                                                 <small class="text-danger">
@@ -174,9 +166,9 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Standaard Prioriteit</label>
-                                        @if (isEditMode)
+                                        @if (viewModel.IsEditMode)
                                         {
-                                            <InputSelect class="form-select" @bind-Value="objectDto.DefaultPriority">
+                                            <InputSelect class="form-select" @bind-Value="viewModel.Object.DefaultPriority">
                                                 @foreach (Priority priority in Enum.GetValues(typeof(Priority)))
                                                 {
                                                     <option value="@priority">@priority</option>
@@ -185,7 +177,7 @@
                                         }
                                         else
                                         {
-                                            <input type="text" class="form-control" value="@objectDto.DefaultPriority" readonly />
+                                            <input type="text" class="form-control" value="@viewModel.Object.DefaultPriority" readonly />
                                         }
                                         <small class="text-muted">Wordt gebruikt bij ticket aanmaak via QR scan</small>
                                     </div>
@@ -194,9 +186,9 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Standaard Reactietijd</label>
-                                        @if (isEditMode)
+                                        @if (viewModel.IsEditMode)
                                         {
-                                            <InputSelect class="form-select" @bind-Value="objectDto.DefaultReactionTime">
+                                            <InputSelect class="form-select" @bind-Value="viewModel.Object.DefaultReactionTime">
                                                 @foreach (ReactionTime reactionTime in Enum.GetValues(typeof(ReactionTime)))
                                                 {
                                                     <option value="@reactionTime">@reactionTime</option>
@@ -205,7 +197,7 @@
                                         }
                                         else
                                         {
-                                            <input type="text" class="form-control" value="@objectDto.DefaultReactionTime" readonly />
+                                            <input type="text" class="form-control" value="@viewModel.Object.DefaultReactionTime" readonly />
                                         }
                                         <small class="text-muted">Wordt gebruikt bij ticket aanmaak via QR scan</small>
                                     </div>
@@ -214,14 +206,15 @@
 
                             <div class="mb-3">
                                 <label class="form-label">Beschrijving</label>
-                                <InputTextArea class="form-control" @bind-Value="objectDto.Description" rows="4" readonly="@(!isEditMode)" />
+                                <InputTextArea class="form-control" @bind-Value="viewModel.Object.Description"
+                                               rows="4" readonly="@(!viewModel.IsEditMode)" />
                             </div>
 
-                            @if (isEditMode)
+                            @if (viewModel.IsEditMode)
                             {
                                 <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-primary" disabled="@isSaving">
-                                        @if (isSaving)
+                                    <button type="submit" class="btn btn-primary" disabled="@viewModel.IsSaving">
+                                        @if (viewModel.IsSaving)
                                         {
                                             <span class="spinner-border spinner-border-sm me-2"></span>
                                         }
@@ -237,6 +230,7 @@
                 </EditForm>
             </div>
 
+            <!-- Rechter kolom: Acties -->
             <div class="col-md-4">
                 <!-- QR Code Card -->
                 <div class="card mb-3">
@@ -244,9 +238,9 @@
                         <h5 class="mb-0">QR Code</h5>
                     </div>
                     <div class="card-body text-center">
-                        @if (!string.IsNullOrEmpty(qrCodeBase64))
+                        @if (!string.IsNullOrEmpty(viewModel.QRCodeBase64))
                         {
-                            <img src="@qrCodeBase64" alt="QR Code" class="img-fluid mb-3" style="max-width: 250px;" />
+                            <img src="@viewModel.QRCodeBase64" alt="QR Code" class="img-fluid mb-3" style="max-width: 250px;" />
                             <div class="d-grid gap-2">
                                 <button class="btn btn-primary" @onclick="DownloadQRCode">
                                     <i class="bi bi-download"></i> Download QR Code
@@ -258,13 +252,13 @@
                         }
                         else
                         {
-                            <p class="text-muted">QR code wordt geladen...</p>
+                            <LoadingSpinner Message="QR code laden..." />
                         }
                     </div>
                 </div>
 
-  
-                <div class="card">
+                <!-- Snelle Acties Card -->
+                <div class="card mb-3">
                     <div class="card-header">
                         <h5 class="mb-0">Snelle Acties</h5>
                     </div>
@@ -275,9 +269,9 @@
                         <button class="btn btn-info" @onclick="ViewTickets">
                             <i class="bi bi-list-ul"></i> Bekijk Alle Tickets
                         </button>
-                        @if (!isEditMode)
+                        @if (!viewModel.IsEditMode)
                         {
-                            <button class="btn btn-danger" @onclick="ShowDeleteConfirmation">
+                            <button class="btn btn-danger" @onclick="viewModel.ShowDeleteDialog">
                                 <i class="bi bi-trash"></i> Object Verwijderen
                             </button>
                         }
@@ -285,22 +279,22 @@
                 </div>
 
                 <!-- Info Card -->
-                <div class="card mt-3">
+                <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0">Object Informatie</h5>
                     </div>
                     <div class="card-body">
                         <p class="mb-2">
                             <strong>Object Code:</strong><br />
-                            <span class="font-monospace">@objectDto.ObjectCode</span>
+                            <span class="font-monospace">@viewModel.Object.ObjectCode</span>
                         </p>
                         <p class="mb-2">
                             <strong>Bedrijf:</strong><br />
-                            @objectDto.CompanyName
+                            @viewModel.Object.CompanyName
                         </p>
                         <p class="mb-0">
                             <strong>Locatie:</strong><br />
-                            @objectDto.Location
+                            @viewModel.Object.Location
                         </p>
                     </div>
                 </div>
@@ -309,152 +303,95 @@
     }
 </div>
 
-<!-- Delete Confirmation Modal -->
-@if (showDeleteConfirmation)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Object Verwijderen</h5>
-                    <button type="button" class="btn-close" @onclick="CancelDelete"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Weet je zeker dat je <strong>@objectDto?.Name</strong> wilt verwijderen?</p>
-                    <p class="text-danger">
-                        <i class="bi bi-exclamation-triangle"></i> Deze actie kan niet ongedaan worden gemaakt.
-                    </p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CancelDelete">Annuleren</button>
-                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@isDeleting">
-                        @if (isDeleting)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2"></span>
-                        }
-                        Verwijderen
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+<ConfirmDialog Show="@viewModel.ShowDeleteConfirmation"
+               Title="Object Verwijderen"
+               Message="@($"Weet je zeker dat je {viewModel.Object?.Name} wilt verwijderen?")"
+               ConfirmText="Verwijderen"
+               ConfirmButtonType="danger"
+               Icon="exclamation-triangle"
+               IconColor="danger"
+               IsProcessing="@viewModel.IsDeleting"
+               OnConfirm="ConfirmDelete"
+               OnCancel="viewModel.CancelDelete">
+    <p class="text-danger">
+        <i class="bi bi-exclamation-triangle"></i> Deze actie kan niet ongedaan worden gemaakt.
+    </p>
+</ConfirmDialog>
 
 @code {
     [Parameter] public int ObjectId { get; set; }
-
-    private ObjectDto? objectDto;
-    private string qrCodeBase64 = string.Empty;
-
-    private bool isLoading = true;
-    private bool isSaving = false;
-    private bool isEditMode = false;
-    private bool isDeleting = false;
-    private bool showDeleteConfirmation = false;
-    private string errorMessage = string.Empty;
-    private string successMessage = string.Empty;
+    private ObjectDetailsViewModel viewModel = new();
 
     protected override async Task OnInitializedAsync()
     {
-        isEditMode = Navigation.Uri.Contains("/edit/");
-        await LoadObject();
+        if (Navigation.Uri.Contains("/edit/"))
+        {
+            viewModel.IsEditMode = true;
+        }
 
-        if (!isEditMode && objectDto != null)
+        viewModel.OnStateChanged += StateHasChanged;
+        await viewModel.LoadObjectAsync(() => ObjectApiService.GetObjectByIdAsync(ObjectId));
+
+        if (!viewModel.IsEditMode && viewModel.Object != null)
         {
             GenerateQRCode();
         }
     }
 
-    private async Task LoadObject()
-    {
-        try
-        {
-            isLoading = true;
-            objectDto = await ObjectApiService.GetObjectByIdAsync(ObjectId);
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Fout bij laden van object: {ex.Message}";
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
-
     private void GenerateQRCode()
     {
-        if (objectDto != null)
+        if (viewModel.Object != null)
         {
-            qrCodeBase64 = QRCodeService.GenerateObjectQRCode(objectDto.ObjectID);
+            var qrCodeBase64 = QRCodeService.GenerateObjectQRCode(viewModel.Object.ObjectID);
+            viewModel.SetQRCode(qrCodeBase64);
         }
     }
 
     private async Task HandleSubmit()
     {
-        if (objectDto == null) return;
+        if (viewModel.Object == null) return;
 
-        isSaving = true;
-        errorMessage = successMessage = string.Empty;
-
-        try
-        {
-            var updateDto = new UpdateObjectDto
-                {
-                    Name = objectDto.Name,
-                    Location = objectDto.Location,
-                    Description = objectDto.Description,
-                    Brand = objectDto.Brand,
-                    Model = objectDto.Model,
-                    SerialNumber = objectDto.SerialNumber,
-                    LastMaintenance = objectDto.LastMaintenance,
-                    NextMaintenance = objectDto.NextMaintenance,
-                    DefaultPriority = objectDto.DefaultPriority,
-                    DefaultReactionTime = objectDto.DefaultReactionTime,
-                    ChangedBy = "Gebruiker"
-                };
-
-            var result = await ObjectApiService.UpdateObjectAsync(objectDto.ObjectID, updateDto);
-
-            if (result != null)
+        var updateDto = new UpdateObjectDto
             {
-                objectDto = result;
-                successMessage = "Object succesvol bijgewerkt!";
-                isEditMode = false;
-                await LoadObject();
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Fout bij opslaan: {ex.Message}";
-        }
-        finally
-        {
-            isSaving = false;
-        }
-    }
+                Name = viewModel.Object.Name,
+                Location = viewModel.Object.Location,
+                Description = viewModel.Object.Description,
+                Brand = viewModel.Object.Brand,
+                Model = viewModel.Object.Model,
+                SerialNumber = viewModel.Object.SerialNumber,
+                LastMaintenance = viewModel.Object.LastMaintenance,
+                NextMaintenance = viewModel.Object.NextMaintenance,
+                DefaultPriority = viewModel.Object.DefaultPriority,
+                DefaultReactionTime = viewModel.Object.DefaultReactionTime,
+                ChangedBy = "User" // TODO: Get from auth
+            };
 
-    private void EnableEditMode()
-    {
-        isEditMode = true;
+        await viewModel.SaveObjectAsync(() => ObjectApiService.UpdateObjectAsync(ObjectId, updateDto));
     }
 
     private async Task CancelEdit()
     {
-        isEditMode = false;
-        await LoadObject();
+        viewModel.CancelEdit();
+        await viewModel.LoadObjectAsync(() => ObjectApiService.GetObjectByIdAsync(ObjectId));
+    }
+
+    private async Task ConfirmDelete()
+    {
+        bool success = await viewModel.DeleteObjectAsync(() => ObjectApiService.DeleteObjectAsync(ObjectId));
+        if (success)
+        {
+            Navigation.NavigateTo("/object");
+        }
     }
 
     private void DownloadQRCode()
     {
-        // Implementeer download functionaliteit
-        errorMessage = "Download functionaliteit wordt binnenkort toegevoegd";
+        viewModel.SetError("Download functionaliteit wordt binnenkort toegevoegd");
     }
 
     private void PrintQRCode()
     {
-        // Implementeer print functionaliteit
-        errorMessage = "Print functionaliteit wordt binnenkort toegevoegd";
+        viewModel.SetError("Print functionaliteit wordt binnenkort toegevoegd");
     }
 
     private void CreateTicket()
@@ -467,49 +404,10 @@
         Navigation.NavigateTo($"/ticket?objectId={ObjectId}");
     }
 
-    private void ShowDeleteConfirmation()
+    private void GoBack() => Navigation.NavigateTo("/object");
+
+    public void Dispose()
     {
-        showDeleteConfirmation = true;
-    }
-
-    private void CancelDelete()
-    {
-        showDeleteConfirmation = false;
-    }
-
-    private async Task ConfirmDelete()
-    {
-        if (objectDto == null) return;
-
-        isDeleting = true;
-        errorMessage = string.Empty;
-
-        try
-        {
-            bool success = await ObjectApiService.DeleteObjectAsync(objectDto.ObjectID);
-
-            if (success)
-            {
-                Navigation.NavigateTo("/object");
-            }
-            else
-            {
-                errorMessage = "Fout bij verwijderen van object.";
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Fout bij verwijderen: {ex.Message}";
-        }
-        finally
-        {
-            isDeleting = false;
-            showDeleteConfirmation = false;
-        }
-    }
-
-    private void GoBack()
-    {
-        Navigation.NavigateTo("/object");
+        viewModel.OnStateChanged -= StateHasChanged;
     }
 }

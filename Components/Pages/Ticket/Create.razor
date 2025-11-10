@@ -7,6 +7,7 @@
 @using ZorgmeldSysteem.Blazor.Services;
 @using ZorgmeldSysteem.Blazor.Services.Api
 @using ZorgmeldSysteem.Blazor.Components.Shared
+@using ZorgmeldSysteem.Blazor.Components.Common
 @inject TicketApiService ApiService
 @inject ObjectApiService ObjectApiService
 @inject NavigationManager Navigation
@@ -30,16 +31,12 @@
 
 @if (!string.IsNullOrEmpty(errorMessage))
 {
-    <div class="alert alert-danger" role="alert">
-        @errorMessage
-    </div>
+    <AlertMessage Message="@errorMessage" Type="danger" Icon="exclamation-triangle" />
 }
 
 @if (isLoading)
 {
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">Laden...</span>
-    </div>
+    <LoadingSpinner Message="laden..." />
 }
 else
 {
@@ -223,23 +220,22 @@ else
 
         try
         {
-            // QR code bevat ObjectID (bijvoorbeeld "OBJ-123" of gewoon "123")
-            // Haal het ID eruit
+
             int objectId = ExtractObjectIdFromQRCode(qrCode);
 
             if (objectId > 0)
             {
-                // Haal het object op via API
+   
                 var scannedObject = await ObjectApiService.GetObjectByIdAsync(objectId);
 
                 if (scannedObject != null)
                 {
-                    // Vul automatisch de velden in
+ 
                     newTicket.CompanyID = scannedObject.CompanyID;
                     newTicket.ObjectId = scannedObject.ObjectID;
                     newTicket.Location = scannedObject.Location;
 
-                    // Neem standaard prioriteit en reactietijd over
+        
                     newTicket.Priority = scannedObject.DefaultPriority;
                     newTicket.ReactionTime = scannedObject.DefaultReactionTime;
 
@@ -269,30 +265,22 @@ else
 
     private int ExtractObjectIdFromQRCode(string qrCode)
     {
-        // QR code kan verschillende formaten hebben:
-        // - "123" (gewoon het ID)
-        // - "OBJ-123" (met prefix - ObjectDetails formaat)
-        // - "OBJECT:123" (met prefix - QRCodeService formaat)
-        // - "PREVIEW:OBJ-001" (preview format)
-        // - "{"ObjectID":123,...}" (JSON)
 
-        // Probeer eerst als gewoon nummer
         if (int.TryParse(qrCode, out int id))
         {
             return id;
         }
 
-        // Probeer met OBJECT: prefix (standaard QRCodeService formaat)
+
         if (qrCode.StartsWith("OBJECT:", StringComparison.OrdinalIgnoreCase))
         {
-            var numberPart = qrCode.Substring(7); // "OBJECT:" is 7 karakters
+            var numberPart = qrCode.Substring(7); 
             if (int.TryParse(numberPart, out id))
             {
                 return id;
             }
         }
 
-        // Probeer met OBJ- prefix (alternatief formaat)
         if (qrCode.StartsWith("OBJ-", StringComparison.OrdinalIgnoreCase))
         {
             var numberPart = qrCode.Substring(4);
@@ -301,6 +289,7 @@ else
                 return id;
             }
         }
+    
 
         // Probeer als JSON (voor uitgebreidere QR codes)
         try

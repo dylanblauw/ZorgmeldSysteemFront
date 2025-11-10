@@ -4,6 +4,7 @@
 @using ZorgmeldSysteem.Blazor.Models.Enums
 @using ZorgmeldSysteem.Blazor.Services.Api
 @using ZorgmeldSysteem.Blazor.Services.Helpers
+@using ZorgmeldSysteem.Blazor.Components.Common
 @inject MechanicApiService MechanicApiService
 @inject CompanyApiService CompanyApiService
 @inject MechanicDisplayService DisplayService
@@ -21,11 +22,8 @@
     </div>
 
     @if (!string.IsNullOrEmpty(errorMessage))
-
     {
-        <div class="alert alert-danger" role="alert">
-            @errorMessage
-        </div>
+    <AlertMessage Message="@errorMessage" Type="danger" Icon="exclamation-triangle" />
     }
 
     @if (isLoading)
