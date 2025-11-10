@@ -1,7 +1,7 @@
 ﻿using ZorgmeldSysteem.Blazor.Models.DTOs.Ticket;
 using ZorgmeldSysteem.Blazor.Models.Enums;
 
-namespace ZorgmeldSysteem.Blazor.ViewModels
+namespace ZorgmeldSysteem.Blazor.ViewModels.Ticket
 {
     public class TicketsViewModel
     {

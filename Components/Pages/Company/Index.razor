@@ -3,8 +3,10 @@
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Company
 @using ZorgmeldSysteem.Blazor.Services.Api
 @using ZorgmeldSysteem.Blazor.Components.Common
+@using ZorgmeldSysteem.Blazor.ViewModels.Company
 @inject CompanyApiService CompanyApiService
 @inject NavigationManager Navigation
+@implements IDisposable
 @rendermode InteractiveServer
 
 <PageTitle>Bedrijven Overzicht</PageTitle>
@@ -17,10 +19,10 @@
         </button>
     </div>
 
-    <AlertMessage Message="@errorMessage" Type="danger" Icon="exclamation-triangle" />
-    <AlertMessage Message="@successMessage" Type="success" Icon="check-circle" Dismissible="true" />
+    <AlertMessage Message="@viewModel.ErrorMessage" Type="danger" Icon="exclamation-triangle" />
+    <AlertMessage Message="@viewModel.SuccessMessage" Type="success" Icon="check-circle" Dismissible="true" />
 
-    @if (isLoading)
+    @if (viewModel.IsLoading)
     {
         <LoadingSpinner Message="Bedrijven laden..." />
     }
@@ -33,13 +35,15 @@
                     <div class="col-md-6">
                         <label class="form-label">Zoeken</label>
                         <input type="text" class="form-control"
-                               @bind="searchQuery"
-                               @bind:event="oninput"
-                               placeholder="Zoek op naam, plaats of contactpersoon..." />
+                               value="@viewModel.SearchQuery"
+                               @oninput="@(e => OnSearchChanged(e.Value?.ToString() ?? string.Empty))"
+                               placeholder="Zoek op naam, email, stad of contactpersoon..." />
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Type</label>
-                        <select class="form-select" @bind="filterExternal" @bind:event="onchange">
+                        <select class="form-select" 
+                                value="@viewModel.FilterIsExternal"
+                                @onchange="@(e => OnTypeFilterChanged(e.Value?.ToString() ?? string.Empty))">
                             <option value="">Alle bedrijven</option>
                             <option value="false">Intern</option>
                             <option value="true">Extern</option>
@@ -60,7 +64,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <p class="text-muted mb-0">
-                        <i class="bi bi-filter"></i> @GetFilteredCompanies().Count() van @allCompanies.Count bedrijven
+                        <i class="bi bi-filter"></i> @viewModel.GetFilteredCompanies().Count van @viewModel.AllCompanies.Count bedrijven
                     </p>
                     <div>
                         <label class="me-2">Items per pagina:</label>
@@ -74,39 +78,30 @@
                     </div>
                 </div>
 
-                <QuickGrid Items="@GetFilteredCompanies()" Pagination="@pagination" Class="table table-hover">
+                <QuickGrid Items="@viewModel.GetFilteredCompanies().AsQueryable()" Pagination="@pagination" Class="table table-hover">
                     <PropertyColumn Property="@(c => c.Name)" Title="Bedrijfsnaam" Sortable="true" />
-
-                    <TemplateColumn Title="Adres" Sortable="true"
-                                    SortBy="@(GridSort<CompanyDto>.ByAscending(c => c.City))">
-                        <div>
-                            <div>@context.Street @context.HouseNumber@context.HouseNumberAddition</div>
-                            <small class="text-muted">@context.PostalCode @context.City</small>
-                        </div>
-                    </TemplateColumn>
-
-                    <TemplateColumn Title="Contact">
-                        <div>
-                            <div><i class="bi bi-person"></i> @context.Contact</div>
-                            <small class="text-muted"><i class="bi bi-envelope"></i> @context.Email</small><br />
-                            <small class="text-muted"><i class="bi bi-telephone"></i> @context.Phonenumber</small>
-                        </div>
-                    </TemplateColumn>
 
                     <TemplateColumn Title="Type" Sortable="true"
                                     SortBy="@(GridSort<CompanyDto>.ByAscending(c => c.IsExternal))">
                         @if (context.IsExternal)
                         {
-                            <span class="badge bg-warning text-dark">
-                                <i class="bi bi-building"></i> Extern
-                            </span>
+                            <span class="badge bg-warning text-dark">Extern</span>
                         }
                         else
                         {
-                            <span class="badge bg-primary">
-                                <i class="bi bi-house"></i> Intern
-                            </span>
+                            <span class="badge bg-primary">Intern</span>
                         }
+                    </TemplateColumn>
+
+                    <PropertyColumn Property="@(c => c.Email)" Title="Email" Sortable="true" />
+
+                    <PropertyColumn Property="@(c => c.Phonenumber)" Title="Telefoonnummer" Sortable="true" />
+
+                    <PropertyColumn Property="@(c => c.City)" Title="Plaats" Sortable="true" />
+
+                    <TemplateColumn Title="Contactpersoon" Sortable="true"
+                                    SortBy="@(GridSort<CompanyDto>.ByAscending(c => c.Contact ?? ""))">
+                        @(context.Contact ?? "-")
                     </TemplateColumn>
 
                     <TemplateColumn Title="Acties">
@@ -122,7 +117,7 @@
                                 <i class="bi bi-pencil"></i>
                             </button>
                             <button class="btn btn-outline-danger"
-                                    @onclick="() => ShowDeleteConfirmation(context)"
+                                    @onclick="() => viewModel.ShowDeleteConfirmation(context)"
                                     title="Verwijderen">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -136,18 +131,18 @@
     }
 </div>
 
-<ConfirmDialog Show="@(companyToDelete != null)"
-               Title="Bedrijf Verwijderen"
-               Message="@($"Weet je zeker dat je {companyToDelete?.Name} wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt. Let op: Tickets en monteurs gekoppeld aan dit bedrijf blijven bestaan.")"
-               ConfirmText="Verwijderen"
-               CancelText="Annuleren"
-               ConfirmButtonType="danger"
-               Icon="exclamation-triangle"
-               IconColor="danger"
-               IsProcessing="@isDeleting"
-               OnConfirm="ConfirmDelete"
-               OnCancel="CancelDelete" />
-
+<ConfirmDialog 
+    Show="@(viewModel.CompanyToDelete != null)"
+    Title="Bedrijf Verwijderen"
+    Message="@($"Weet je zeker dat je {viewModel.CompanyToDelete?.Name} wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.")"
+    ConfirmText="Verwijderen"
+    CancelText="Annuleren"
+    ConfirmButtonType="danger"
+    Icon="exclamation-triangle"
+    IconColor="danger"
+    IsProcessing="@viewModel.IsDeleting"
+    OnConfirm="ConfirmDelete"
+    OnCancel="viewModel.CancelDelete" />
 
 <style>
     .quickgrid {
@@ -165,71 +160,39 @@
 </style>
 
 @code {
-    private List<CompanyDto> allCompanies = new();
+    private CompaniesViewModel viewModel = new();
     private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
-
-    private string searchQuery = string.Empty;
-    private string filterExternal = string.Empty;
-
-    private bool isLoading = true;
-    private bool isDeleting = false;
-    private string errorMessage = string.Empty;
-    private string successMessage = string.Empty;
-
-    private CompanyDto? companyToDelete = null;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadCompanies();
+        // Subscribe op state changes zodat UI update bij wijzigingen
+        viewModel.OnStateChanged += StateHasChanged;
+        
+        // Laad alle bedrijven
+        await viewModel.LoadCompaniesAsync(() => CompanyApiService.GetAllCompaniesAsync());
     }
 
-    private async Task LoadCompanies()
+    // ==================== FILTER EVENT HANDLERS ====================
+    
+    private void OnSearchChanged(string value)
     {
-        try
-        {
-            isLoading = true;
-            allCompanies = await CompanyApiService.GetAllCompaniesAsync();
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Fout bij laden van bedrijven: {ex.Message}";
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        viewModel.SearchQuery = value;
+        StateHasChanged();
     }
 
-    private IQueryable<CompanyDto> GetFilteredCompanies()
+    private void OnTypeFilterChanged(string value)
     {
-        var filtered = allCompanies.AsQueryable();
-
-        // Zoeken
-        if (!string.IsNullOrWhiteSpace(searchQuery))
-        {
-            filtered = filtered.Where(c =>
-                c.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
-                c.City.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
-                c.Contact.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
-                c.Email.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
-            );
-        }
-
-        // Filter op intern/extern
-        if (!string.IsNullOrWhiteSpace(filterExternal))
-        {
-            var isExternal = bool.Parse(filterExternal);
-            filtered = filtered.Where(c => c.IsExternal == isExternal);
-        }
-
-        return filtered;
+        viewModel.FilterIsExternal = value;
+        StateHasChanged();
     }
 
     private void ClearFilters()
     {
-        searchQuery = string.Empty;
-        filterExternal = string.Empty;
+        viewModel.ClearFilters();
+        StateHasChanged();
     }
+
+    // ==================== NAVIGATION ====================
 
     private void ViewCompany(int companyId)
     {
@@ -238,7 +201,7 @@
 
     private void EditCompany(int companyId)
     {
-        Navigation.NavigateTo($"/company/edit/{companyId}");
+        Navigation.NavigateTo($"/company/{companyId}");
     }
 
     private void GoToCreateCompany()
@@ -246,45 +209,17 @@
         Navigation.NavigateTo("/company/create");
     }
 
-    private void ShowDeleteConfirmation(CompanyDto company)
-    {
-        companyToDelete = company;
-    }
-
-    private void CancelDelete()
-    {
-        companyToDelete = null;
-    }
+    // ==================== DELETE ====================
 
     private async Task ConfirmDelete()
     {
-        if (companyToDelete == null) return;
+        await viewModel.DeleteCompanyAsync((id) => CompanyApiService.DeleteCompanyAsync(id));
+    }
 
-        isDeleting = true;
-        errorMessage = string.Empty;
+    // ==================== CLEANUP ====================
 
-        try
-        {
-            bool success = await CompanyApiService.DeleteCompanyAsync(companyToDelete.CompanyID);
-
-            if (success)
-            {
-                successMessage = $"Bedrijf '{companyToDelete.Name}' succesvol verwijderd.";
-                allCompanies.Remove(companyToDelete);
-                companyToDelete = null;
-            }
-            else
-            {
-                errorMessage = "Fout bij verwijderen van bedrijf.";
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Fout bij verwijderen: {ex.Message}";
-        }
-        finally
-        {
-            isDeleting = false;
-        }
+    public void Dispose()
+    {
+        viewModel.OnStateChanged -= StateHasChanged;
     }
 }

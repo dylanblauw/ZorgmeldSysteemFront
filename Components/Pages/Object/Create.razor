@@ -1,6 +1,6 @@
 ﻿@page "/object/create"
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Object
-@using ZorgmeldSysteem.Blazor.ViewModels
+@using ZorgmeldSysteem.Blazor.ViewModels.Object
 @using ZorgmeldSysteem.Blazor.Services.Api
 @using ZorgmeldSysteem.Blazor.Services.Business
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Company
@@ -27,9 +27,7 @@
 
     @if (viewModel.IsLoading)
     {
-        <div class="spinner-border" role="status">
-            <span class="visually-hidden">Laden...</span>
-        </div>
+        <LoadingSpinner Message=" laden..." />
     }
     else if (viewModel.ObjectCreated && viewModel.CreatedObject != null)
     {

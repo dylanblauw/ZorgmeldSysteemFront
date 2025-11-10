@@ -1,7 +1,7 @@
 ﻿using ZorgmeldSysteem.Blazor.Models.DTOs.Object;
 using ZorgmeldSysteem.Blazor.Models.DTOs.Company;
 
-namespace ZorgmeldSysteem.Blazor.ViewModels
+namespace ZorgmeldSysteem.Blazor.ViewModels.Object
 {
     public class CreateObjectViewModel
     {

@@ -1,0 +1,299 @@
+﻿@page "/company/{CompanyId:int}"
+@using ZorgmeldSysteem.Blazor.ViewModels.Company
+@using ZorgmeldSysteem.Blazor.Components.Common
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Company
+@using ZorgmeldSysteem.Blazor.Services.Api
+@inject CompanyApiService CompanyApiService
+@inject NavigationManager Navigation
+@implements IDisposable
+@rendermode InteractiveServer
+
+<PageTitle>@(viewModel.Company?.Name ?? "Bedrijf Details")</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>@(viewModel.IsEditMode ? "Bedrijf Bewerken" : "Bedrijf Details")</h3>
+        <div>
+            @if (!viewModel.IsEditMode && viewModel.Company != null)
+            {
+                <button class="btn btn-warning me-2" @onclick="viewModel.EnableEditMode">
+                    <i class="bi bi-pencil"></i> Bewerken
+                </button>
+            }
+            <button class="btn btn-secondary" @onclick="GoBack">
+                <i class="bi bi-arrow-left"></i> Terug
+            </button>
+        </div>
+    </div>
+
+    <AlertMessage Message="@viewModel.ErrorMessage" Type="danger" Icon="exclamation-triangle" />
+    <AlertMessage Message="@viewModel.SuccessMessage" Type="success" Icon="check-circle" />
+
+    @if (viewModel.IsLoading)
+    {
+        <LoadingSpinner Message="Bedrijf laden..." />
+    }
+    else if (viewModel.Company == null)
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> Bedrijf niet gevonden.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <EditForm Model="@viewModel.Company" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Bedrijfsgegevens</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Bedrijfsnaam *</label>
+                                        <InputText class="form-control" @bind-Value="viewModel.Company.Name"
+                                                   readonly="@(!viewModel.IsEditMode)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Contactpersoon</label>
+                                        <InputText class="form-control" @bind-Value="viewModel.Company.Contact"
+                                                   readonly="@(!viewModel.IsEditMode)" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Email *</label>
+                                        <InputText type="email" class="form-control" @bind-Value="viewModel.Company.Email"
+                                                   readonly="@(!viewModel.IsEditMode)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Telefoonnummer *</label>
+                                        <InputText class="form-control" @bind-Value="viewModel.Company.Phonenumber"
+                                                   readonly="@(!viewModel.IsEditMode)" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (!viewModel.IsEditMode)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" checked="@viewModel.Company.IsExternal" disabled />
+                                    <label class="form-check-label">
+                                        Extern bedrijf
+                                    </label>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="form-check">
+                                    <InputCheckbox class="form-check-input" id="isExternal" @bind-Value="viewModel.Company.IsExternal" />
+                                    <label class="form-check-label" for="isExternal">
+                                        Extern bedrijf
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Adresgegevens</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Straat *</label>
+                                <InputText class="form-control" @bind-Value="viewModel.Company.Street"
+                                           readonly="@(!viewModel.IsEditMode)" />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Huisnummer *</label>
+                                        <InputText class="form-control" @bind-Value="viewModel.Company.HouseNumber"
+                                                   readonly="@(!viewModel.IsEditMode)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Toevoeging</label>
+                                        <InputText class="form-control" @bind-Value="viewModel.Company.HouseNumberAddition"
+                                                   readonly="@(!viewModel.IsEditMode)" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Postcode *</label>
+                                        <InputText class="form-control" @bind-Value="viewModel.Company.PostalCode"
+                                                   readonly="@(!viewModel.IsEditMode)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Plaats *</label>
+                                        <InputText class="form-control" @bind-Value="viewModel.Company.City"
+                                                   readonly="@(!viewModel.IsEditMode)" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Provincie *</label>
+                                        <InputText class="form-control" @bind-Value="viewModel.Company.Province"
+                                                   readonly="@(!viewModel.IsEditMode)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Land *</label>
+                                        <InputText class="form-control" @bind-Value="viewModel.Company.Country"
+                                                   readonly="@(!viewModel.IsEditMode)" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (viewModel.IsEditMode)
+                            {
+                                <div class="mt-3 d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary" disabled="@viewModel.IsSaving">
+                                        @if (viewModel.IsSaving)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2"></span>
+                                        }
+                                        <i class="bi bi-save"></i> Opslaan
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" @onclick="CancelEdit">
+                                        <i class="bi bi-x-circle"></i> Annuleren
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Acties</h5>
+                    </div>
+                    <div class="card-body d-grid gap-2">
+                        @if (!viewModel.IsEditMode)
+                        {
+                            <button class="btn btn-danger" @onclick="viewModel.ShowDeleteDialog">
+                                <i class="bi bi-trash"></i> Verwijderen
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Informatie</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2"><small class="text-muted">ID: @viewModel.Company.CompanyID</small></p>
+                        <p class="mb-0">
+                            <small class="text-muted">Type:</small><br />
+                            @if (viewModel.Company.IsExternal)
+                            {
+                                <span class="badge bg-warning text-dark">Extern</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-primary">Intern</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<ConfirmDialog Show="@viewModel.ShowDeleteConfirmation"
+               Title="Bedrijf Verwijderen"
+               Message="@($"Weet je zeker dat je {viewModel.Company?.Name} wilt verwijderen?")"
+               ConfirmText="Verwijderen"
+               ConfirmButtonType="danger"
+               Icon="exclamation-triangle"
+               IconColor="danger"
+               IsProcessing="@viewModel.IsDeleting"
+               OnConfirm="ConfirmDelete"
+               OnCancel="viewModel.CancelDelete">
+    <p class="text-danger">
+        <i class="bi bi-exclamation-triangle"></i> Deze actie kan niet ongedaan worden gemaakt.
+    </p>
+</ConfirmDialog>
+
+@code {
+    [Parameter] public int CompanyId { get; set; }
+    private CompanyDetailsViewModel viewModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        viewModel.OnStateChanged += StateHasChanged;
+        await viewModel.LoadCompanyAsync(() => CompanyApiService.GetCompanyByIdAsync(CompanyId));
+    }
+
+    private async Task HandleSubmit()
+    {
+        var updateDto = new UpdateCompanyDto
+            {
+                Name = viewModel.Company!.Name,
+                Email = viewModel.Company.Email,
+                Phonenumber = viewModel.Company.Phonenumber,
+                Street = viewModel.Company.Street,
+                HouseNumber = viewModel.Company.HouseNumber,
+                HouseNumberAddition = viewModel.Company.HouseNumberAddition,
+                PostalCode = viewModel.Company.PostalCode,
+                City = viewModel.Company.City,
+                Province = viewModel.Company.Province,
+                Country = viewModel.Company.Country,
+                Contact = viewModel.Company.Contact,
+                IsExternal = viewModel.Company.IsExternal,
+                ChangedBy = "User" // TODO: Get from auth
+            };
+
+        await viewModel.SaveCompanyAsync(() => CompanyApiService.UpdateCompanyAsync(CompanyId, updateDto));
+    }
+
+    private async Task CancelEdit()
+    {
+        viewModel.CancelEdit();
+        // Reload original data
+        await viewModel.LoadCompanyAsync(() => CompanyApiService.GetCompanyByIdAsync(CompanyId));
+    }
+
+    private async Task ConfirmDelete()
+    {
+        bool success = await viewModel.DeleteCompanyAsync(() => CompanyApiService.DeleteCompanyAsync(CompanyId));
+        if (success)
+        {
+            Navigation.NavigateTo("/company");
+        }
+    }
+
+    private void GoBack() => Navigation.NavigateTo("/company");
+
+    public void Dispose()
+    {
+        viewModel.OnStateChanged -= StateHasChanged;
+    }
+}

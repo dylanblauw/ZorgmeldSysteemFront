@@ -7,6 +7,7 @@
 @using ZorgmeldSysteem.Blazor.Services;
 @using ZorgmeldSysteem.Blazor.Services.Api
 @using ZorgmeldSysteem.Blazor.Components.Shared
+@using ZorgmeldSysteem.Blazor.Components.Common
 @inject TicketApiService ApiService
 @inject ObjectApiService ObjectApiService
 @inject NavigationManager Navigation
@@ -30,16 +31,12 @@
 
 @if (!string.IsNullOrEmpty(errorMessage))
 {
-    <div class="alert alert-danger" role="alert">
-        @errorMessage
-    </div>
+    <AlertMessage Message="@errorMessage" Type="danger" Icon="exclamation-triangle" />
 }
 
 @if (isLoading)
 {
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">Laden...</span>
-    </div>
+    <LoadingSpinner Message="laden..." />
 }
 else
 {

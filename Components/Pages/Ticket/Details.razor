@@ -7,6 +7,7 @@
 @using ZorgmeldSysteem.Blazor.Models.Enums
 @using ZorgmeldSysteem.Blazor.Services
 @using ZorgmeldSysteem.Blazor.Services.Api
+@using ZorgmeldSysteem.Blazor.Components.Common
 @inject TicketApiService ApiService
 @inject ObjectApiService ObjectApiService
 @inject NavigationManager Navigation
@@ -51,10 +52,8 @@
 
     @if (isLoading)
     {
-        <div class="text-center my-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-3">Ticket laden...</p>
-        </div>
+
+       <LoadingSpinner Message="Ticket laden..." />
     }
     else if (ticket == null)
     {

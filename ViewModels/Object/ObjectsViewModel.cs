@@ -1,6 +1,6 @@
 ﻿using ZorgmeldSysteem.Blazor.Models.DTOs.Object;
 
-namespace ZorgmeldSysteem.Blazor.ViewModels
+namespace ZorgmeldSysteem.Blazor.ViewModels.Object
 {
     public class ObjectsViewModel
     {

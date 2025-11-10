@@ -15,10 +15,7 @@
     }
     else if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="alert alert-danger" role="alert">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <strong>Fout:</strong> @errorMessage
-        </div>
+        <AlertMessage Message="@errorMessage" Type="danger" Icon="exclamation-triangle" />
     }
     else
     {

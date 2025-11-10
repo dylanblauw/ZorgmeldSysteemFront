@@ -3,12 +3,12 @@ using ZorgmeldSysteem.Blazor.Models.DTOs.Company;
 using ZorgmeldSysteem.Blazor.Models.DTOs.Mechanic;
 using ZorgmeldSysteem.Blazor.Models.DTOs.Object;
 
-namespace ZorgmeldSysteem.Blazor.ViewModels
+namespace ZorgmeldSysteem.Blazor.ViewModels.Ticket
 {
-    public class TicketDetailViewModel
+    public class CreateTicketViewModel
     {
         // Data
-        public TicketDto? Ticket { get; set; }
+        public CreateTicketDto NewTicket { get; set; } = new();
         public List<CompanyDto> Companies { get; set; } = new();
         public List<MechanicDto> Mechanics { get; set; } = new();
         public List<ObjectDto> AvailableObjects { get; set; } = new();
@@ -17,9 +17,7 @@ namespace ZorgmeldSysteem.Blazor.ViewModels
         // State
         public bool IsLoading { get; set; }
         public bool IsSaving { get; set; }
-        public bool IsEditMode { get; set; }
         public string ErrorMessage { get; set; } = string.Empty;
-        public string SuccessMessage { get; set; } = string.Empty;
 
         // Events
         public event Action? OnStateChanged;
@@ -27,40 +25,30 @@ namespace ZorgmeldSysteem.Blazor.ViewModels
         // Computed Properties
         public List<ObjectDto> GetFilteredObjects()
         {
-            if (Ticket == null || string.IsNullOrWhiteSpace(Ticket.Location))
+            if (string.IsNullOrWhiteSpace(NewTicket.Location))
+            {
                 return AvailableObjects;
+            }
 
             return AvailableObjects
-                .Where(obj => obj.Location.Equals(Ticket.Location, StringComparison.OrdinalIgnoreCase))
+                .Where(obj => obj.Location.Equals(NewTicket.Location, StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
 
+        public int GetFilteredObjectCount()
+        {
+            return GetFilteredObjects().Count;
+        }
+
         // Methods
-        public async Task LoadTicketAsync(Func<Task<TicketDto?>> loadFunc)
+        public async Task LoadInitialDataAsync(
+            Func<Task<List<CompanyDto>>> loadCompanies,
+            Func<Task<List<MechanicDto>>> loadMechanics)
         {
             IsLoading = true;
             ErrorMessage = string.Empty;
             NotifyStateChanged();
 
-            try
-            {
-                Ticket = await loadFunc();
-            }
-            catch (Exception ex)
-            {
-                ErrorMessage = $"Fout bij laden van ticket: {ex.Message}";
-            }
-            finally
-            {
-                IsLoading = false;
-                NotifyStateChanged();
-            }
-        }
-
-        public async Task LoadDropdownDataAsync(
-            Func<Task<List<CompanyDto>>> loadCompanies,
-            Func<Task<List<MechanicDto>>> loadMechanics)
-        {
             try
             {
                 var companiesTask = loadCompanies();
@@ -70,11 +58,14 @@ namespace ZorgmeldSysteem.Blazor.ViewModels
 
                 Companies = await companiesTask;
                 Mechanics = await mechanicsTask;
-                NotifyStateChanged();
             }
             catch (Exception ex)
             {
                 ErrorMessage = $"Fout bij laden van data: {ex.Message}";
+            }
+            finally
+            {
+                IsLoading = false;
                 NotifyStateChanged();
             }
         }
@@ -88,6 +79,7 @@ namespace ZorgmeldSysteem.Blazor.ViewModels
             {
                 AvailableLocations.Clear();
                 AvailableObjects.Clear();
+                NewTicket.Location = string.Empty;
                 NotifyStateChanged();
                 return;
             }
@@ -101,72 +93,46 @@ namespace ZorgmeldSysteem.Blazor.ViewModels
 
                 AvailableLocations = await locationsTask;
                 AvailableObjects = await objectsTask;
+                NewTicket.Location = string.Empty;
                 NotifyStateChanged();
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Fout bij laden van bedrijfsgegevens: {ex.Message}";
-                NotifyStateChanged();
-            }
-        }
-
-        public void EnableEditMode()
-        {
-            IsEditMode = true;
-            SuccessMessage = string.Empty;
-            NotifyStateChanged();
-        }
-
-        public void CancelEdit()
-        {
-            IsEditMode = false;
-            ErrorMessage = string.Empty;
-            SuccessMessage = string.Empty;
-            NotifyStateChanged();
-        }
-
-        public async Task SaveTicketAsync(Func<Task<TicketDto?>> saveFunc)
-        {
-            IsSaving = true;
-            ErrorMessage = string.Empty;
-            SuccessMessage = string.Empty;
-            NotifyStateChanged();
-
-            try
-            {
-                var result = await saveFunc();
-                if (result != null)
-                {
-                    Ticket = result;
-                    SuccessMessage = "Ticket succesvol bijgewerkt!";
-                    IsEditMode = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                ErrorMessage = $"Fout bij opslaan: {ex.Message}";
-            }
-            finally
-            {
-                IsSaving = false;
+                ErrorMessage = $"Fout bij laden van objecten: {ex.Message}";
                 NotifyStateChanged();
             }
         }
 
         public void SetCompany(int companyId)
         {
-            if (Ticket != null)
-            {
-                Ticket.CompanyID = companyId;
-                NotifyStateChanged();
-            }
+            NewTicket.CompanyID = companyId;
+            NotifyStateChanged();
         }
 
         public void SetLocation(string location)
         {
-            if (Ticket != null)
+            NewTicket.Location = location;
+            NotifyStateChanged();
+        }
+
+        public async Task<TicketDto?> SaveTicketAsync(Func<CreateTicketDto, Task<TicketDto?>> saveFunc)
+        {
+            IsSaving = true;
+            ErrorMessage = string.Empty;
+            NotifyStateChanged();
+
+            try
             {
-                Ticket.Location = location;
+                return await saveFunc(NewTicket);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Fout bij aanmaken ticket: {ex.Message}";
+                return null;
+            }
+            finally
+            {
+                IsSaving = false;
                 NotifyStateChanged();
             }
         }
