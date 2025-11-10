@@ -137,6 +137,62 @@ namespace ZorgmeldSysteem.Blazor.ViewModels.Ticket
             }
         }
 
+        public async Task PreFillFromObjectAsync(
+            int objectId,
+            Func<int, Task<ObjectDto?>> loadObjectFunc,
+            Func<int, Task<List<string>>> loadLocationsFunc,
+            Func<int, Task<List<ObjectDto>>> loadObjectsFunc)
+        {
+            IsLoading = true;
+            ErrorMessage = string.Empty;
+            NotifyStateChanged();
+
+            try
+            {
+                // Laad het object
+                var objectDto = await loadObjectFunc(objectId);
+
+                if (objectDto == null)
+                {
+                    ErrorMessage = "Object niet gevonden.";
+                    return;
+                }
+
+                // Pre-fill Company
+                NewTicket.CompanyID = objectDto.CompanyID;
+
+                // Laad company-specifieke data
+                var locationsTask = loadLocationsFunc(objectDto.CompanyID);
+                var objectsTask = loadObjectsFunc(objectDto.CompanyID);
+
+                await Task.WhenAll(locationsTask, objectsTask);
+
+                AvailableLocations = await locationsTask;
+                AvailableObjects = await objectsTask;
+
+                // Pre-fill Location
+                NewTicket.Location = objectDto.Location;
+
+                // Pre-fill Object
+                NewTicket.ObjectId = objectDto.ObjectID;
+
+                // Pre-fill Priority & ReactionTime
+                NewTicket.Priority = objectDto.DefaultPriority;
+                NewTicket.ReactionTime = objectDto.DefaultReactionTime;
+
+                NotifyStateChanged();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Fout bij laden van object: {ex.Message}";
+            }
+            finally
+            {
+                IsLoading = false;
+                NotifyStateChanged();
+            }
+        }
+
         private void NotifyStateChanged() => OnStateChanged?.Invoke();
     }
 }

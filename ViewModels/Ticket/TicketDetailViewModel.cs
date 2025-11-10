@@ -24,18 +24,13 @@ namespace ZorgmeldSysteem.Blazor.ViewModels.Ticket
         // Events
         public event Action? OnStateChanged;
 
-        // Computed Properties
+
         public List<ObjectDto> GetFilteredObjects()
         {
-            if (Ticket == null || string.IsNullOrWhiteSpace(Ticket.Location))
-                return AvailableObjects;
-
-            return AvailableObjects
-                .Where(obj => obj.Location.Equals(Ticket.Location, StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            return AvailableObjects;
         }
 
-        // Methods
+      
         public async Task LoadTicketAsync(Func<Task<TicketDto?>> loadFunc)
         {
             IsLoading = true;
@@ -79,10 +74,7 @@ namespace ZorgmeldSysteem.Blazor.ViewModels.Ticket
             }
         }
 
-        public async Task LoadCompanyDataAsync(
-            int companyId,
-            Func<int, Task<List<string>>> loadLocations,
-            Func<int, Task<List<ObjectDto>>> loadObjects)
+        public async Task LoadCompanyDataAsync(int companyId, Func<int, Task<List<string>>> loadLocations, Func<int, Task<List<ObjectDto>>> loadObjects)
         {
             if (companyId <= 0)
             {
@@ -101,7 +93,7 @@ namespace ZorgmeldSysteem.Blazor.ViewModels.Ticket
 
                 AvailableLocations = await locationsTask;
                 AvailableObjects = await objectsTask;
-                NotifyStateChanged();
+                NotifyStateChanged();  // ← HET PROBLEEM: Location/Object wordt NIET gereset!
             }
             catch (Exception ex)
             {
@@ -109,6 +101,37 @@ namespace ZorgmeldSysteem.Blazor.ViewModels.Ticket
                 NotifyStateChanged();
             }
         }
+        //}
+        //public async Task LoadCompanyDataAsync(
+        //    int companyId,
+        //    Func<int, Task<List<string>>> loadLocations,
+        //    Func<int, Task<List<ObjectDto>>> loadObjects)
+        //{
+        //    if (companyId <= 0)
+        //    {
+        //        AvailableLocations.Clear();
+        //        AvailableObjects.Clear();
+        //        NotifyStateChanged();
+        //        return;
+        //    }
+
+        //    try
+        //    {
+        //        var locationsTask = loadLocations(companyId);
+        //        var objectsTask = loadObjects(companyId);
+
+        //        await Task.WhenAll(locationsTask, objectsTask);
+
+        //        AvailableLocations = await locationsTask;
+        //        AvailableObjects = await objectsTask;
+        //        NotifyStateChanged();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        ErrorMessage = $"Fout bij laden van bedrijfsgegevens: {ex.Message}";
+        //        NotifyStateChanged();
+        //    }
+        //}
 
         public void EnableEditMode()
         {

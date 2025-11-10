@@ -64,12 +64,7 @@
     [Parameter] public bool IsProcessing { get; set; }
     [Parameter] public EventCallback OnConfirm { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
-
-    /// <summary>
-    /// Extra content die getoond wordt onder het Message
-    /// </summary>
-    [Parameter]
-    public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private async Task HandleConfirm() => await OnConfirm.InvokeAsync();
     private async Task HandleCancel() => await OnCancel.InvokeAsync();
