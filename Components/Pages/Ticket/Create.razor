@@ -289,16 +289,17 @@ else
                 return id;
             }
         }
+    
 
-        // // Probeer als JSON (voor uitgebreidere QR codes)
-        // try
-        // {
-        //     var json = System.Text.Json.JsonDocument.Parse(qrCode);
-        //     if (json.RootElement.TryGetProperty("ObjectID", out var objIdProp))
-        //     {
-        //         return objIdProp.GetInt32();
-        //     }
-        // }
+        // Probeer als JSON (voor uitgebreidere QR codes)
+        try
+        {
+            var json = System.Text.Json.JsonDocument.Parse(qrCode);
+            if (json.RootElement.TryGetProperty("ObjectID", out var objIdProp))
+            {
+                return objIdProp.GetInt32();
+            }
+        }
         catch { }
 
         return 0;
