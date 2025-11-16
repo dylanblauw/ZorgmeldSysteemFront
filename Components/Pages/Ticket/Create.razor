@@ -1,16 +1,17 @@
 ﻿@page "/ticket/create"
+@using ZorgmeldSysteem.Blazor.ViewModels.Ticket
+@using ZorgmeldSysteem.Blazor.Components.Common
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Ticket
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Company
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Mechanic
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Object
 @using ZorgmeldSysteem.Blazor.Models.Enums
-@using ZorgmeldSysteem.Blazor.Services;
 @using ZorgmeldSysteem.Blazor.Services.Api
 @using ZorgmeldSysteem.Blazor.Components.Shared
-@using ZorgmeldSysteem.Blazor.Components.Common
 @inject TicketApiService ApiService
 @inject ObjectApiService ObjectApiService
 @inject NavigationManager Navigation
+@implements IDisposable
 @rendermode InteractiveServer
 
 <PageTitle>Nieuwe Ticket Aanmaken</PageTitle>
@@ -29,18 +30,15 @@
     }
 </div>
 
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <AlertMessage Message="@errorMessage" Type="danger" Icon="exclamation-triangle" />
-}
+<AlertMessage Message="@viewModel.ErrorMessage" Type="danger" Icon="exclamation-triangle" />
 
-@if (isLoading)
+@if (viewModel.IsLoading)
 {
-    <LoadingSpinner Message="laden..." />
+    <LoadingSpinner Message="Gegevens laden..." />
 }
 else
 {
-    <EditForm Model="@newTicket" OnValidSubmit="HandleSubmit">
+    <EditForm Model="@viewModel.NewTicket" OnValidSubmit="HandleSubmit">
         <DataAnnotationsValidator />
         <ValidationSummary />
 
@@ -48,9 +46,9 @@ else
             <div class="col-md-6">
                 <div class="mb-3">
                     <label class="form-label">Bedrijf *</label>
-                    <select class="form-select" @onchange="OnCompanyChangedHandler" value="@newTicket.CompanyID">
+                    <select class="form-select" value="@viewModel.NewTicket.CompanyID" @onchange="OnCompanyChanged">
                         <option value="0">-- Selecteer bedrijf --</option>
-                        @foreach (var company in companies)
+                        @foreach (var company in viewModel.Companies)
                         {
                             <option value="@company.CompanyID">@company.Name</option>
                         }
@@ -59,18 +57,18 @@ else
 
                 <div class="mb-3">
                     <label class="form-label">Locatie</label>
-                    <select class="form-select" value="@newTicket.Location" @onchange="OnLocationChangedHandler">
+                    <select class="form-select" value="@viewModel.NewTicket.Location" @onchange="OnLocationChanged">
                         <option value="">-- Selecteer locatie --</option>
-                        @foreach (var location in availableLocations)
+                        @foreach (var location in viewModel.AvailableLocations)
                         {
                             <option value="@location">@location</option>
                         }
                     </select>
-                    @if (filteredObjects.Count > 0 && !string.IsNullOrWhiteSpace(newTicket.Location))
+                    @if (viewModel.GetFilteredObjectCount() > 0 && !string.IsNullOrWhiteSpace(viewModel.NewTicket.Location))
                     {
-                        <small class="text-muted">@filteredObjects.Count object(en) gevonden op deze locatie</small>
+                        <small class="text-muted">@viewModel.GetFilteredObjectCount() object(en) gevonden op deze locatie</small>
                     }
-                    @if (newTicket.CompanyID == 0)
+                    @if (viewModel.NewTicket.CompanyID == 0)
                     {
                         <small class="text-warning">Selecteer eerst een bedrijf</small>
                     }
@@ -78,14 +76,14 @@ else
 
                 <div class="mb-3">
                     <label class="form-label">Object (optioneel)</label>
-                    <InputSelect class="form-select" @bind-Value="newTicket.ObjectId">
+                    <InputSelect class="form-select" @bind-Value="viewModel.NewTicket.ObjectId">
                         <option value="">-- Geen object --</option>
-                        @foreach (var obj in filteredObjects)
+                        @foreach (var obj in viewModel.GetFilteredObjects())
                         {
                             <option value="@obj.ObjectID">@obj.Name - @obj.Location</option>
                         }
                     </InputSelect>
-                    @if (newTicket.CompanyID == 0)
+                    @if (viewModel.NewTicket.CompanyID == 0)
                     {
                         <small class="text-warning">Selecteer eerst een bedrijf</small>
                     }
@@ -93,9 +91,9 @@ else
 
                 <div class="mb-3">
                     <label class="form-label">Monteur (optioneel)</label>
-                    <InputSelect class="form-select" @bind-Value="newTicket.MechanicID">
+                    <InputSelect class="form-select" @bind-Value="viewModel.NewTicket.MechanicID">
                         <option value="">-- Nog niet toegewezen --</option>
-                        @foreach (var mechanic in mechanics)
+                        @foreach (var mechanic in viewModel.Mechanics)
                         {
                             <option value="@mechanic.MechanicID">@mechanic.Name</option>
                         }
@@ -105,7 +103,7 @@ else
 
             <div class="col-md-6">
                 <div class="mb-3 form-check form-switch">
-                    <InputCheckbox @bind-Value="newTicket.IsUrgent"
+                    <InputCheckbox @bind-Value="viewModel.NewTicket.IsUrgent"
                                    class="form-check-input"
                                    id="spoed" />
                     <label class="form-check-label" for="spoed">
@@ -116,7 +114,7 @@ else
 
                 <div class="mb-3">
                     <label class="form-label">Prioriteit *</label>
-                    <InputSelect class="form-select" @bind-Value="newTicket.Priority">
+                    <InputSelect class="form-select" @bind-Value="viewModel.NewTicket.Priority">
                         @foreach (Priority priority in Enum.GetValues(typeof(Priority)))
                         {
                             <option value="@priority">@priority</option>
@@ -126,7 +124,7 @@ else
 
                 <div class="mb-3">
                     <label class="form-label">Reactietijd *</label>
-                    <InputSelect class="form-select" @bind-Value="newTicket.ReactionTime">
+                    <InputSelect class="form-select" @bind-Value="viewModel.NewTicket.ReactionTime">
                         @foreach (ReactionTime reactionTime in Enum.GetValues(typeof(ReactionTime)))
                         {
                             <option value="@reactionTime">@reactionTime</option>
@@ -136,24 +134,24 @@ else
 
                 <div class="mb-3">
                     <label class="form-label">Aangemaakt door *</label>
-                    <InputText class="form-control" @bind-Value="newTicket.CreatedBy" placeholder="Jouw naam" />
+                    <InputText class="form-control" @bind-Value="viewModel.NewTicket.CreatedBy" placeholder="Jouw naam" />
                 </div>
             </div>
         </div>
 
         <div class="mb-3">
             <label class="form-label">Beschrijving *</label>
-            <InputTextArea class="form-control" @bind-Value="newTicket.Description" rows="4" placeholder="Beschrijf het probleem..." />
+            <InputTextArea class="form-control" @bind-Value="viewModel.NewTicket.Description" rows="4" placeholder="Beschrijf het probleem..." />
         </div>
 
         <div class="mb-3">
             <label class="form-label">Notitie (optioneel)</label>
-            <InputTextArea class="form-control" @bind-Value="newTicket.Note" rows="3" placeholder="Extra informatie..." />
+            <InputTextArea class="form-control" @bind-Value="viewModel.NewTicket.Note" rows="3" placeholder="Extra informatie..." />
         </div>
 
         <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary" disabled="@isSaving">
-                @if (isSaving)
+            <button type="submit" class="btn btn-primary" disabled="@viewModel.IsSaving">
+                @if (viewModel.IsSaving)
                 {
                     <span class="spinner-border spinner-border-sm me-2"></span>
                 }
@@ -173,33 +171,37 @@ else
                OnClose="CloseQRScanner" />
 
 @code {
-    private CreateTicketDto newTicket = new();
-    private List<CompanyDto> companies = new();
-    private List<MechanicDto> mechanics = new();
-    private List<ObjectDto> availableObjects = new();
-    private List<ObjectDto> filteredObjects = new();
-    private List<string> availableLocations = new();
+    private CreateTicketViewModel viewModel = new();
 
-    private bool isLoading = true;
-    private bool isSaving = false;
     private bool showQRScanner = false;
-    private string errorMessage = string.Empty;
     private string qrScanMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        viewModel.OnStateChanged += StateHasChanged;
+
+        // Laad basis data (companies en mechanics)
+        await viewModel.LoadInitialDataAsync(
+            () => ApiService.GetAllCompaniesAsync(),
+            () => ApiService.GetActiveMechanicsAsync()
+        );
+
+        // Check voor objectId in URL (van Object Details "Nieuw Ticket" button)
+        var uri = new Uri(Navigation.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var objectIdParam = query["objectId"];
+
+        if (!string.IsNullOrEmpty(objectIdParam) && int.TryParse(objectIdParam, out int objectId))
         {
-            companies = await ApiService.GetAllCompaniesAsync();
-            mechanics = await ApiService.GetActiveMechanicsAsync();
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Fout bij laden van data: {ex.Message}";
-        }
-        finally
-        {
-            isLoading = false;
+            // Pre-fill from object!
+            await viewModel.PreFillFromObjectAsync(
+                objectId,
+                ObjectApiService.GetObjectByIdAsync,
+                ObjectApiService.GetLocationsByCompanyAsync,
+                ObjectApiService.GetObjectsByCompanyAsync
+            );
+
+            qrScanMessage = $"✅ Ticket vooraf ingevuld met object gegevens";
         }
     }
 
@@ -220,67 +222,57 @@ else
 
         try
         {
-
             int objectId = ExtractObjectIdFromQRCode(qrCode);
 
             if (objectId > 0)
             {
-   
-                var scannedObject = await ObjectApiService.GetObjectByIdAsync(objectId);
+                // Gebruik dezelfde PreFillFromObjectAsync method!
+                await viewModel.PreFillFromObjectAsync(
+                    objectId,
+                    ObjectApiService.GetObjectByIdAsync,
+                    ObjectApiService.GetLocationsByCompanyAsync,
+                    ObjectApiService.GetObjectsByCompanyAsync
+                );
 
+                // Haal object op voor message
+                var scannedObject = await ObjectApiService.GetObjectByIdAsync(objectId);
                 if (scannedObject != null)
                 {
- 
-                    newTicket.CompanyID = scannedObject.CompanyID;
-                    newTicket.ObjectId = scannedObject.ObjectID;
-                    newTicket.Location = scannedObject.Location;
-
-        
-                    newTicket.Priority = scannedObject.DefaultPriority;
-                    newTicket.ReactionTime = scannedObject.DefaultReactionTime;
-
-                    // Laad bedrijfsgegevens
-                    await LoadCompanySpecificData(newTicket.CompanyID);
-
                     qrScanMessage = $"✅ Object gescand: {scannedObject.Name} - {scannedObject.Location}";
-
-                    // Scroll naar boven
-                    StateHasChanged();
-                }
-                else
-                {
-                    errorMessage = "Object niet gevonden in het systeem.";
                 }
             }
             else
             {
-                errorMessage = "Ongeldige QR code. Kon geen object ID vinden.";
+                viewModel.ErrorMessage = "Ongeldige QR code. Kon geen object ID vinden.";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Fout bij verwerken van QR code: {ex.Message}";
+            viewModel.ErrorMessage = $"Fout bij verwerken van QR code: {ex.Message}";
         }
+
+        StateHasChanged();
     }
 
     private int ExtractObjectIdFromQRCode(string qrCode)
     {
-
+        // Direct nummer
         if (int.TryParse(qrCode, out int id))
         {
             return id;
         }
 
-
+        // Format: "OBJECT:123"
         if (qrCode.StartsWith("OBJECT:", StringComparison.OrdinalIgnoreCase))
         {
-            var numberPart = qrCode.Substring(7); 
+            var numberPart = qrCode.Substring(7);
             if (int.TryParse(numberPart, out id))
             {
                 return id;
             }
         }
 
+        // Format: "OBJ-123"
         if (qrCode.StartsWith("OBJ-", StringComparison.OrdinalIgnoreCase))
         {
             var numberPart = qrCode.Substring(4);
@@ -289,9 +281,8 @@ else
                 return id;
             }
         }
-    
 
-        // Probeer als JSON (voor uitgebreidere QR codes)
+        // Probeer als JSON
         try
         {
             var json = System.Text.Json.JsonDocument.Parse(qrCode);
@@ -305,108 +296,60 @@ else
         return 0;
     }
 
-    private async Task OnCompanyChangedHandler(ChangeEventArgs e)
+    private async Task OnCompanyChanged(ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out int companyId))
         {
-            newTicket.CompanyID = companyId;
+            viewModel.SetCompany(companyId);
 
             if (companyId > 0)
             {
-                await LoadCompanySpecificData(companyId);
-            }
-            else
-            {
-                availableLocations.Clear();
-                availableObjects.Clear();
-                filteredObjects.Clear();
-                newTicket.Location = string.Empty;
+                await viewModel.LoadCompanyDataAsync(
+                    companyId,
+                    ObjectApiService.GetLocationsByCompanyAsync,
+                    ObjectApiService.GetObjectsByCompanyAsync
+                );
             }
         }
     }
 
-    private async Task LoadCompanySpecificData(int companyId)
+    private void OnLocationChanged(ChangeEventArgs e)
     {
-        try
-        {
-            var locationsTask = ObjectApiService.GetLocationsByCompanyAsync(companyId);
-            var objectsTask = ObjectApiService.GetObjectsByCompanyAsync(companyId);
-
-            await Task.WhenAll(locationsTask, objectsTask);
-
-            availableLocations = await locationsTask;
-            availableObjects = await objectsTask;
-            filteredObjects = new List<ObjectDto>(availableObjects);
-
-            // Als location al is ingesteld (bijv. door QR scan), filter de objecten
-            if (!string.IsNullOrWhiteSpace(newTicket.Location))
-            {
-                FilterObjectsByLocation();
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Fout bij laden van objecten: {ex.Message}";
-        }
-    }
-
-    private void OnLocationChangedHandler(ChangeEventArgs e)
-    {
-        newTicket.Location = e.Value?.ToString() ?? string.Empty;
-        FilterObjectsByLocation();
-    }
-
-    private void FilterObjectsByLocation()
-    {
-        if (string.IsNullOrWhiteSpace(newTicket.Location))
-        {
-            filteredObjects = new List<ObjectDto>(availableObjects);
-        }
-        else
-        {
-            filteredObjects = availableObjects
-                .Where(obj => obj.Location.Equals(newTicket.Location, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
+        viewModel.SetLocation(e.Value?.ToString() ?? string.Empty);
     }
 
     private async Task HandleSubmit()
     {
-        isSaving = true;
-        errorMessage = string.Empty;
-
-        try
+        // Als spoed, override priority en reaction time
+        if (viewModel.NewTicket.IsUrgent)
         {
-            if (newTicket.IsUrgent)
-            {
-                newTicket.Priority = Priority.Critical;
-                newTicket.ReactionTime = ReactionTime.Within4Hours;
-            }
-
-            var result = await ApiService.CreateTicketAsync(newTicket);
-
-            if (result != null)
-            {
-                Navigation.NavigateTo("/");
-            }
+            viewModel.NewTicket.Priority = Priority.Critical;
+            viewModel.NewTicket.ReactionTime = ReactionTime.Within4Hours;
         }
-        catch (Exception ex)
+
+        var result = await viewModel.SaveTicketAsync(async (ticket) =>
         {
-            errorMessage = $"Fout bij aanmaken ticket: {ex.Message}";
-        }
-        finally
+            return await ApiService.CreateTicketAsync(ticket);
+        });
+
+        if (result != null)
         {
-            isSaving = false;
+            Navigation.NavigateTo("/ticket");
         }
     }
 
     private void UploadPhoto()
     {
-        errorMessage = "Foto upload is nog niet geïmplementeerd";
+        viewModel.ErrorMessage = "Foto upload is nog niet geïmplementeerd";
     }
 
     private void Cancel()
     {
-        Navigation.NavigateTo("/");
+        Navigation.NavigateTo("/ticket");
+    }
+
+    public void Dispose()
+    {
+        viewModel.OnStateChanged -= StateHasChanged;
     }
 }

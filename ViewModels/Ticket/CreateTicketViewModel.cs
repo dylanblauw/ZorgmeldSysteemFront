@@ -25,14 +25,7 @@ namespace ZorgmeldSysteem.Blazor.ViewModels.Ticket
         // Computed Properties
         public List<ObjectDto> GetFilteredObjects()
         {
-            if (string.IsNullOrWhiteSpace(NewTicket.Location))
-            {
-                return AvailableObjects;
-            }
-
-            return AvailableObjects
-                .Where(obj => obj.Location.Equals(NewTicket.Location, StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            return AvailableObjects;
         }
 
         public int GetFilteredObjectCount()
