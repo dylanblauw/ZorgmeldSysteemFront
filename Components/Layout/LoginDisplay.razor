@@ -6,24 +6,29 @@
 <AuthorizeView>
     <Authorized>
         <div class="dropdown">
-            <button class="btn btn-outline-dark dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <button class="btn btn-outline-dark dropdown-toggle"
+                    type="button"
+                    @onclick="ToggleDropdown">
                 <i class="bi bi-person-circle"></i> @context.User.Identity?.Name
             </button>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                <li>
-                    <span class="dropdown-item-text">
-                        <small class="text-muted">Ingelogd als:</small><br />
-                        <strong>@context.User.Identity?.Name</strong><br />
-                        <small>@GetUserRole(context)</small>
-                    </span>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
-                    <a class="dropdown-item" href="/logout">
-                        <i class="bi bi-box-arrow-right"></i> Uitloggen
-                    </a>
-                </li>
-            </ul>
+            @if (isDropdownOpen)
+            {
+                <ul class="dropdown-menu dropdown-menu-end show">
+                    <li>
+                        <span class="dropdown-item-text">
+                            <small class="text-muted">Ingelogd als:</small><br />
+                            <strong>@context.User.Identity?.Name</strong><br />
+                            <small>@GetUserRole(context)</small>
+                        </span>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="/logout">
+                            <i class="bi bi-box-arrow-right"></i> Uitloggen
+                        </a>
+                    </li>
+                </ul>
+            }
         </div>
     </Authorized>
     <NotAuthorized>
@@ -34,6 +39,13 @@
 </AuthorizeView>
 
 @code {
+    private bool isDropdownOpen = false;
+
+    private void ToggleDropdown()
+    {
+        isDropdownOpen = !isDropdownOpen;
+    }
+
     private string GetUserRole(AuthenticationState state)
     {
         var roleClaim = state.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role);
