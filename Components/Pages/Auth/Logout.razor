@@ -1,0 +1,33 @@
+﻿@page "/logout"
+@using ZorgmeldSysteem.Blazor.Services.Auth
+@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Uitloggen - ZorgmeldSysteem</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow text-center">
+                <div class="card-body p-5">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Bezig met uitloggen...</span>
+                    </div>
+                    <h4>Bezig met uitloggen...</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Logout gebruiker
+        await AuthStateProvider.LogoutAsync();
+
+        // Redirect naar login
+        await Task.Delay(500); // Kleine delay voor UX
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}

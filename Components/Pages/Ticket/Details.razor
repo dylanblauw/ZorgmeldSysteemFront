@@ -54,7 +54,7 @@
     }
     else
     {
-        <EditForm Model="@viewModel.Ticket" OnValidSubmit="HandleSubmit">
+        <EditForm Model="@viewModel.Ticket" OnValidSubmit="HandleSubmit" FormName="editTicketForm">
             <DataAnnotationsValidator />
 
             <div class="row">

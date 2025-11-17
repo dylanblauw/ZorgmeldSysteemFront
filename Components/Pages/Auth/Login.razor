@@ -1,0 +1,125 @@
+﻿@page "/login"
+@using ZorgmeldSysteem.Blazor.Models.DTOs.Auth
+@using ZorgmeldSysteem.Blazor.Services.Api
+@using ZorgmeldSysteem.Blazor.Services.Auth
+@inject AuthApiService AuthApi
+@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Inloggen - ZorgmeldSysteem</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-center mb-4">
+                        <i class="bi bi-shield-lock"></i> Inloggen
+                    </h3>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            <i class="bi bi-exclamation-triangle"></i> @errorMessage
+                        </div>
+                    }
+
+                    <EditForm Model="loginModel" OnValidSubmit="HandleLogin" FormName="loginForm">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <InputText id="email"
+                                       class="form-control"
+                                       @bind-Value="loginModel.Email"
+                                       placeholder="naam@voorbeeld.nl"
+                                       autocomplete="email"
+                                       disabled="@isLoading" />
+                            <ValidationMessage For="@(() => loginModel.Email)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Wachtwoord</label>
+                            <InputText id="password"
+                                       type="password"
+                                       class="form-control"
+                                       @bind-Value="loginModel.Password"
+                                       placeholder="••••••••"
+                                       autocomplete="current-password"
+                                       disabled="@isLoading" />
+                            <ValidationMessage For="@(() => loginModel.Password)" class="text-danger" />
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <span>Bezig met inloggen...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-box-arrow-in-right me-2"></i>
+                                    <span>Inloggen</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+
+                    <hr class="my-4" />
+
+                    <div class="text-center text-muted small">
+                        <p class="mb-1">Test accounts:</p>
+                        <p class="mb-0">
+                            <strong>Admin:</strong> admin@fixility.nl<br />
+                            <strong>Manager:</strong> manager@boomgaard.nl<br />
+                            <strong>Monteur:</strong> piet@fixility.nl<br />
+                            <strong>Melder:</strong> anna@boomgaard.nl<br />
+                            <em>Wachtwoord voor allen: Admin123!</em>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginRequestDto loginModel = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var result = await AuthApi.LoginAsync(loginModel);
+
+            if (result != null)
+            {
+                // Login succesvol - sla token op
+                await AuthStateProvider.LoginAsync(result);
+
+                // Navigeer naar home
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                errorMessage = "Onjuiste email of wachtwoord.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Er is een fout opgetreden: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

@@ -48,7 +48,7 @@
         <div class="row">
             <!-- Linker kolom: Formulier -->
             <div class="col-md-8">
-                <EditForm Model="@viewModel.Object" OnValidSubmit="HandleSubmit">
+                <EditForm Model="@viewModel.Object" OnValidSubmit="HandleSubmit" FormName="editObjectForm">
                     <DataAnnotationsValidator />
 
                     <div class="card mb-3">

@@ -23,7 +23,7 @@
 
     <div class="card">
         <div class="card-body">
-            <EditForm Model="@newCompany" OnValidSubmit="HandleSubmit">
+            <EditForm Model="@newCompany" OnValidSubmit="HandleSubmit" FormName="createCompanyForm">
                 <DataAnnotationsValidator />
                 <ValidationSummary />
 
