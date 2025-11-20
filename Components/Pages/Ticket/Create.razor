@@ -1,4 +1,7 @@
 ﻿@page "/ticket/create"
+@attribute [Authorize(Roles = "Fixility Admin,Bedrijfsbeheerder,Melder")]
+
+@using Microsoft.AspNetCore.Authorization
 @using ZorgmeldSysteem.Blazor.ViewModels.Ticket
 @using ZorgmeldSysteem.Blazor.Components.Common
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Ticket

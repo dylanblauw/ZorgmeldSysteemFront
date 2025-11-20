@@ -1,4 +1,5 @@
-﻿@rendermode InteractiveServer
+﻿@* @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
 
 <div class="top-row-edit ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -20,7 +21,7 @@
         </div>
 
         <!-- Tickets Section -->
-        <div class="nav-item px-3 mt-3">
+        <div class="nav-item px-3 mt-1">
             <div class="nav-link text-white fw-bold collapsible-header" @onclick="() => ToggleSection(1)" @onclick:stopPropagation="true">
                 <span class="bi-ticket-perforated-fill me-2" aria-hidden="true"></span>
                 Tickets&nbsp;
@@ -37,7 +38,6 @@
                 </div>
                 <div class="nav-item px-3 ps-5">
                     <NavLink class="nav-link" href="ticket">
-                        <!--                     ^^^^^^ AANGEPAST: was "tickets" -->
                         <span class="bi-list-ul" aria-hidden="true"></span> Alle Tickets
                     </NavLink>
                 </div>
@@ -45,7 +45,7 @@
         }
 
         <!-- Monteurs Section -->
-        <div class="nav-item px-3 mt-3">
+        <div class="nav-item px-3 mt-1">
             <div class="nav-link text-white fw-bold collapsible-header" @onclick="() => ToggleSection(2)" @onclick:stopPropagation="true">
                 <span class="bi-person-gear me-2" aria-hidden="true"></span>
                 Monteurs&nbsp;
@@ -62,7 +62,6 @@
                 </div>
                 <div class="nav-item px-3 ps-5">
                     <NavLink class="nav-link" href="mechanic">
-                        <!--                     ^^^^^^^^ AANGEPAST: was "mechanics" -->
                         <span class="bi-list-ul" aria-hidden="true"></span> Alle Monteurs
                     </NavLink>
                 </div>
@@ -70,7 +69,7 @@
         }
 
         <!-- Bedrijven Section -->
-        <div class="nav-item px-3 mt-3">
+        <div class="nav-item px-3 mt-1">
             <div class="nav-link text-white fw-bold collapsible-header" @onclick="() => ToggleSection(3)" @onclick:stopPropagation="true">
                 <span class="bi-building-fill me-2" aria-hidden="true"></span>
                 Bedrijven&nbsp;
@@ -87,7 +86,6 @@
                 </div>
                 <div class="nav-item px-3 ps-5">
                     <NavLink class="nav-link" href="company">
-                        <!--                     ^^^^^^^ AANGEPAST: was "companies" -->
                         <span class="bi-list-ul" aria-hidden="true"></span> Alle Bedrijven
                     </NavLink>
                 </div>
@@ -95,7 +93,7 @@
         }
 
         <!-- Objecten Section -->
-        <div class="nav-item px-3 mt-3">
+        <div class="nav-item px-3 mt-1">
             <div class="nav-link text-white fw-bold collapsible-header" @onclick="() => ToggleSection(4)" @onclick:stopPropagation="true">
                 <span class="bi-box-seam-fill me-2" aria-hidden="true"></span>
                 Objecten&nbsp;
@@ -112,13 +110,38 @@
                 </div>
                 <div class="nav-item px-3 ps-5">
                     <NavLink class="nav-link" href="object">
-                        <!--                     ^^^^^^ AANGEPAST: was "objects" -->
                         <span class="bi-list-ul" aria-hidden="true"></span> Alle Objecten
                     </NavLink>
                 </div>
             </div>
         }
     </nav>
+
+    <!-- Login/Logout onderaan -->
+    <div class="nav-footer px-3 mt-auto">
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item">
+                    <div class="nav-link text-white">
+                        <span class="bi-person-circle me-2"></span>
+                        <small>@context.User.Identity?.Name</small>
+                    </div>
+                </div>
+                <div class="nav-item">
+                    <a class="nav-link" href="/logout">
+                        <span class="bi-box-arrow-right me-2"></span> Uitloggen
+                    </a>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item">
+                    <a class="nav-link" href="/login">
+                        <span class="bi-box-arrow-in-right me-2"></span> Inloggen
+                    </a>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
 </div>
 
 @code {
@@ -136,5 +159,266 @@
         }
 
         StateHasChanged();
+    }
+} *@
+
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using ZorgmeldSysteem.Blazor.Services.Auth
+@inject AuthorizationService AuthService
+
+<div class="top-row-edit ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">
+            <img src="/Img/Fixility.png" alt="Fixility" class="navbar-logo" />
+        </a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable">
+    <nav class="flex-column">
+        <!-- Home -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi-house-door-fill" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        <!-- Tickets Section - Iedereen behalve niet-ingelogde gebruikers -->
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3 mt-1">
+                    <div class="nav-link text-white fw-bold collapsible-header" @onclick="() => ToggleSection(1)" @onclick:stopPropagation="true">
+                        <span class="bi-ticket-perforated-fill me-2" aria-hidden="true"></span>
+                        Tickets&nbsp;
+                        <span class="@(expandedSections.Contains(1) ? "bi-chevron-up" : "bi-chevron-down") float-end"></span>
+                    </div>
+                </div>
+                @if (expandedSections.Contains(1))
+                {
+                    <div class="submenu">
+                        @* Nieuw Ticket: Admin, Manager, Reporter *@
+                    <AuthorizeView Roles="Fixility Admin,Administrator,Manager,Bedrijfsbeheerder,Reporter,Melder" Context="authContext">
+                            <Authorized>
+                                <div class="nav-item px-3 ps-5">
+                                    <NavLink class="nav-link" href="ticket/create">
+                                        <span class="bi-plus-circle" aria-hidden="true"></span> Nieuw Ticket
+                                    </NavLink>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
+                        
+                        @* Alle Tickets: Iedereen *@
+                        <div class="nav-item px-3 ps-5">
+                            <NavLink class="nav-link" href="ticket">
+                                <span class="bi-list-ul" aria-hidden="true"></span> Alle Tickets
+                            </NavLink>
+                        </div>
+                    </div>
+                }
+            </Authorized>
+        </AuthorizeView>
+
+        <!-- Monteurs Section - Alleen Admin en Manager -->
+        <AuthorizeView Roles="Fixility Admin,Administrator,Manager,Bedrijfsbeheerder">
+            <Authorized>
+                <div class="nav-item px-3 mt-1">
+                    <div class="nav-link text-white fw-bold collapsible-header" @onclick="() => ToggleSection(2)" @onclick:stopPropagation="true">
+                        <span class="bi-person-gear me-2" aria-hidden="true"></span>
+                        Monteurs&nbsp;
+                        <span class="@(expandedSections.Contains(2) ? "bi-chevron-up" : "bi-chevron-down") float-end"></span>
+                    </div>
+                </div>
+                @if (expandedSections.Contains(2))
+                {
+                    <div class="submenu">
+                        <div class="nav-item px-3 ps-5">
+                            <NavLink class="nav-link" href="mechanic/create">
+                                <span class="bi-plus-circle" aria-hidden="true"></span> Nieuwe Monteur
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-3 ps-5">
+                            <NavLink class="nav-link" href="mechanic">
+                                <span class="bi-list-ul" aria-hidden="true"></span> Alle Monteurs
+                            </NavLink>
+                        </div>
+                    </div>
+                }
+            </Authorized>
+        </AuthorizeView>
+
+        <!-- Bedrijven Section - Alleen Admin en Manager -->
+        <AuthorizeView Roles="Fixility Admin,Administrator,Manager,Bedrijfsbeheerder">
+            <Authorized>
+                <div class="nav-item px-3 mt-1">
+                    <div class="nav-link text-white fw-bold collapsible-header" @onclick="() => ToggleSection(3)" @onclick:stopPropagation="true">
+                        <span class="bi-building-fill me-2" aria-hidden="true"></span>
+                        Bedrijven&nbsp;
+                        <span class="@(expandedSections.Contains(3) ? "bi-chevron-up" : "bi-chevron-down") float-end"></span>
+                    </div>
+                </div>
+                @if (expandedSections.Contains(3))
+                {
+                    <div class="submenu">
+                        @* Nieuw Bedrijf: Alleen Admin *@
+                    <AuthorizeView Roles="Fixility Admin,Administrator" Context="authContext">
+                            <Authorized>
+                                <div class="nav-item px-3 ps-5">
+                                    <NavLink class="nav-link" href="company/create">
+                                        <span class="bi-plus-circle" aria-hidden="true"></span> Nieuw Bedrijf
+                                    </NavLink>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
+                        
+                        <div class="nav-item px-3 ps-5">
+                            <NavLink class="nav-link" href="company">
+                                <span class="bi-list-ul" aria-hidden="true"></span> Alle Bedrijven
+                            </NavLink>
+                        </div>
+                    </div>
+                }
+            </Authorized>
+        </AuthorizeView>
+
+        <!-- Objecten Section - Admin, Manager en Mechanic -->
+        <AuthorizeView Roles="Fixility Admin,Administrator,Manager,Bedrijfsbeheerder,Mechanic,Monteur">
+            <Authorized>
+                <div class="nav-item px-3 mt-1">
+                    <div class="nav-link text-white fw-bold collapsible-header" @onclick="() => ToggleSection(4)" @onclick:stopPropagation="true">
+                        <span class="bi-box-seam-fill me-2" aria-hidden="true"></span>
+                        Objecten&nbsp;
+                        <span class="@(expandedSections.Contains(4) ? "bi-chevron-up" : "bi-chevron-down") float-end"></span>
+                    </div>
+                </div>
+                @if (expandedSections.Contains(4))
+                {
+                    <div class="submenu">
+                        @* Nieuw Object: Alleen Admin en Manager *@
+                    <AuthorizeView Roles="Fixility Admin,Administrator,Manager,Bedrijfsbeheerder" Context="authContext">
+                            <Authorized>
+                                <div class="nav-item px-3 ps-5">
+                                    <NavLink class="nav-link" href="object/create">
+                                        <span class="bi-plus-circle" aria-hidden="true"></span> Nieuw Object
+                                    </NavLink>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
+                        
+                        <div class="nav-item px-3 ps-5">
+                            <NavLink class="nav-link" href="object">
+                                <span class="bi-list-ul" aria-hidden="true"></span> Alle Objecten
+                            </NavLink>
+                        </div>
+                    </div>
+                }
+            </Authorized>
+        </AuthorizeView>
+    </nav>
+
+    <!-- Login/Logout onderaan -->
+    <div class="nav-footer px-3 mt-auto">
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item">
+                    <div class="nav-link text-white">
+                        <span class="bi-person-circle me-2"></span>
+                        <small>@context.User.Identity?.Name</small>
+                    </div>
+                </div>
+                
+                @* Toon rol badge *@
+                @if (userRole != null)
+                {
+                    <div class="nav-item mb-2">
+                        <div class="nav-link">
+                            <span class="badge @GetRoleBadgeClass()">@userRole</span>
+                        </div>
+                    </div>
+                }
+                
+                <div class="nav-item">
+                    <a class="nav-link" href="/logout">
+                        <span class="bi-box-arrow-right me-2"></span> Uitloggen
+                    </a>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item">
+                    <a class="nav-link" href="/login">
+                        <span class="bi-box-arrow-in-right me-2"></span> Inloggen
+                    </a>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</div>
+
+<style>
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+
+@code {
+    private HashSet<int> expandedSections = new HashSet<int>();
+    private string? userRole;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Haal gebruikersrol op voor display
+        userRole = await GetUserRoleDisplay();
+    }
+
+    private void ToggleSection(int sectionId)
+    {
+        if (expandedSections.Contains(sectionId))
+        {
+            expandedSections.Remove(sectionId);
+        }
+        else
+        {
+            expandedSections.Add(sectionId);
+        }
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Haal de gebruikersrol op voor weergave
+    /// </summary>
+    private async Task<string?> GetUserRoleDisplay()
+    {
+        if (await AuthService.IsAdminAsync())
+            return "Administrator";
+        
+        if (await AuthService.IsManagerAsync())
+            return "Manager";
+        
+        if (await AuthService.IsMechanicAsync())
+            return "Monteur";
+        
+        if (await AuthService.IsReporterAsync())
+            return "Melder";
+        
+        return null;
+    }
+
+    /// <summary>
+    /// Bepaal de Bootstrap badge class voor de rol
+    /// </summary>
+    private string GetRoleBadgeClass()
+    {
+        return userRole switch
+        {
+            "Administrator" => "bg-danger",
+            "Manager" => "bg-warning text-dark",
+            "Monteur" => "bg-info",
+            "Melder" => "bg-secondary",
+            _ => "bg-secondary"
+        };
     }
 }

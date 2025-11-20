@@ -1,11 +1,16 @@
 ﻿@page "/company"
+@attribute [Authorize(Roles = "Fixility Admin,Administrator,Manager,Bedrijfsbeheerder")]
+
 @using Microsoft.AspNetCore.Components.QuickGrid
+@using Microsoft.AspNetCore.Authorization
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Company
 @using ZorgmeldSysteem.Blazor.Services.Api
 @using ZorgmeldSysteem.Blazor.Components.Common
 @using ZorgmeldSysteem.Blazor.ViewModels.Company
+@using ZorgmeldSysteem.Blazor.Services.Auth
 @inject CompanyApiService CompanyApiService
 @inject NavigationManager Navigation
+@inject AuthorizationService AuthService
 @implements IDisposable
 @rendermode InteractiveServer
 
@@ -14,9 +19,15 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Bedrijven Overzicht</h3>
-        <button class="btn btn-primary" @onclick="GoToCreateCompany">
-            <i class="bi bi-plus-circle"></i> Nieuw Bedrijf
-        </button>
+        
+        @* Alleen Admin mag bedrijven aanmaken *@
+        <AuthorizeView Roles="Fixility Admin,Administrator">
+            <Authorized>
+                <button class="btn btn-primary" @onclick="GoToCreateCompany">
+                    <i class="bi bi-plus-circle"></i> Nieuw Bedrijf
+                </button>
+            </Authorized>
+        </AuthorizeView>
     </div>
 
     <AlertMessage Message="@viewModel.ErrorMessage" Type="danger" Icon="exclamation-triangle" />
@@ -111,16 +122,27 @@
                                     title="Bekijken">
                                 <i class="bi bi-eye"></i>
                             </button>
-                            <button class="btn btn-outline-warning"
-                                    @onclick="() => EditCompany(context.CompanyID)"
-                                    title="Bewerken">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-outline-danger"
-                                    @onclick="() => viewModel.ShowDeleteConfirmation(context)"
-                                    title="Verwijderen">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            
+                            @* Edit button: Alleen Admin of als het je eigen bedrijf is *@
+                            @if (canEditCompany)
+                            {
+                                <button class="btn btn-outline-warning"
+                                        @onclick="() => EditCompany(context.CompanyID)"
+                                        title="Bewerken">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            }
+                            
+                            @* Delete button: Alleen Admin *@
+                            <AuthorizeView Roles="Fixility Admin,Administrator" Context="authContext">
+                                <Authorized>
+                                    <button class="btn btn-outline-danger"
+                                            @onclick="() => viewModel.ShowDeleteConfirmation(context)"
+                                            title="Verwijderen">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </Authorized>
+                            </AuthorizeView>
                         </div>
                     </TemplateColumn>
                 </QuickGrid>
@@ -162,14 +184,49 @@
 @code {
     private CompaniesViewModel viewModel = new();
     private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
+    
+    // 🔐 AUTHORIZATION VARIABELEN
+    private bool showManagerInfo = false;
+    private bool canEditCompany = false;
 
     protected override async Task OnInitializedAsync()
     {
         // Subscribe op state changes zodat UI update bij wijzigingen
         viewModel.OnStateChanged += StateHasChanged;
+
+        // Check of user een manager is (voor info message)
+        showManagerInfo = await AuthService.IsManagerAsync() && !await AuthService.IsAdminAsync();
         
-        // Laad alle bedrijven
-        await viewModel.LoadCompaniesAsync(() => CompanyApiService.GetAllCompaniesAsync());
+        // Check of user mag bewerken
+        canEditCompany = await AuthService.IsAdminAsync() || await AuthService.IsManagerAsync();
+
+        // 🔐 Laad bedrijven MET ROLE-BASED FILTERING
+        await viewModel.LoadCompaniesAsync(async () =>
+        {
+            // Haal ALLE bedrijven op van de API
+            var allCompanies = await CompanyApiService.GetAllCompaniesAsync();
+            
+            // Filter op basis van gebruikersrol
+            return await FilterCompaniesByRole(allCompanies);
+        });
+    }
+
+    /// <summary>
+    /// 🔐 Filter bedrijven op basis van gebruikersrol
+    /// </summary>
+    private async Task<List<CompanyDto>> FilterCompaniesByRole(List<CompanyDto> companies)
+    {
+        // Admin ziet ALLES
+        if (await AuthService.IsAdminAsync())
+        {
+            return companies;
+        }
+
+        // Manager: ALLEEN eigen bedrijf(ven)
+        var userCompanyIds = await AuthService.GetUserCompanyIdsAsync();
+        return companies
+            .Where(c => userCompanyIds.Contains(c.CompanyID))
+            .ToList();
     }
 
     // ==================== FILTER EVENT HANDLERS ====================

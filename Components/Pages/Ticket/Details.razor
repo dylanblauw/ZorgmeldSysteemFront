@@ -1,5 +1,8 @@
 ﻿@page "/ticket/{TicketId:int}"
 @page "/ticket/edit/{TicketId:int}"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
 @using ZorgmeldSysteem.Blazor.ViewModels.Ticket
 @using ZorgmeldSysteem.Blazor.Components.Common
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Ticket
@@ -8,8 +11,12 @@
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Object
 @using ZorgmeldSysteem.Blazor.Models.Enums
 @using ZorgmeldSysteem.Blazor.Services.Api
+@using ZorgmeldSysteem.Blazor.Services.Auth
 @inject TicketApiService ApiService
+@inject CompanyApiService CompanyApiService
+@inject MechanicApiService MechanicApiService
 @inject ObjectApiService ObjectApiService
+@inject AuthorizationService AuthService
 @inject NavigationManager Navigation
 @implements IDisposable
 @rendermode InteractiveServer
@@ -17,223 +24,312 @@
 <PageTitle>@(viewModel.Ticket?.TicketCode ?? "Ticket Details")</PageTitle>
 
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>@(viewModel.IsEditMode ? "Ticket Bewerken" : "Ticket Details")</h3>
-        <div>
-            @if (!viewModel.IsEditMode && viewModel.Ticket != null)
-            {
-                <button class="btn btn-warning me-2" @onclick="viewModel.EnableEditMode">
-                    <i class="bi bi-pencil"></i> Bewerken
-                </button>
-            }
-            <button class="btn btn-secondary" @onclick="GoBack">
-                <i class="bi bi-arrow-left"></i> Terug
+    @if (isCheckingAccess)
+    {
+        <LoadingSpinner Message="Toegang controleren..." />
+    }
+    else if (!hasAccess)
+    {
+        <!-- GEEN TOEGANG MELDING -->
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">
+                <i class="bi bi-exclamation-triangle"></i> Geen Toegang
+            </h4>
+            <p>Je hebt geen toegang tot dit ticket.</p>
+            <hr>
+            <button class="btn btn-primary" @onclick="GoBack">
+                <i class="bi bi-arrow-left"></i> Terug naar Tickets
             </button>
-        </div>
-    </div>
-
-    @if (viewModel.Ticket != null && viewModel.Ticket.IsUrgent)
-    {
-        <div class="alert alert-danger mb-4 text-center">
-            🚨 <strong>SPOEDTICKET!</strong> Dit ticket vereist directe aandacht.
-        </div>
-    }
-
-    <AlertMessage Message="@viewModel.ErrorMessage" Type="danger" Icon="exclamation-triangle" />
-    <AlertMessage Message="@viewModel.SuccessMessage" Type="success" Icon="check-circle" />
-
-    @if (viewModel.IsLoading)
-    {
-        <LoadingSpinner Message="Ticket laden..." />
-    }
-    else if (viewModel.Ticket == null)
-    {
-        <div class="alert alert-warning">
-            <i class="bi bi-exclamation-triangle"></i> Ticket niet gevonden.
         </div>
     }
     else
     {
-        <EditForm Model="@viewModel.Ticket" OnValidSubmit="HandleSubmit" FormName="editTicketForm">
-            <DataAnnotationsValidator />
+        <!-- HEEFT TOEGANG - TOON TICKET -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3>@(viewModel.IsEditMode ? "Ticket Bewerken" : "Ticket Details")</h3>
+            <div>
+                @* Bewerken button alleen als user mag bewerken EN niet al in edit mode *@
+                @if (!viewModel.IsEditMode && viewModel.Ticket != null && canEdit)
+                {
+                    <button class="btn btn-warning me-2" @onclick="viewModel.EnableEditMode">
+                        <i class="bi bi-pencil"></i> Bewerken
+                    </button>
+                }
+                <button class="btn btn-secondary" @onclick="GoBack">
+                    <i class="bi bi-arrow-left"></i> Terug
+                </button>
+            </div>
+        </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">Bedrijf *</label>
-                        @if (viewModel.IsEditMode)
-                        {
-                            <select class="form-select" value="@viewModel.Ticket.CompanyID" @onchange="OnCompanyChanged">
-                                <option value="0">-- Selecteer bedrijf --</option>
-                                @foreach (CompanyDto company in viewModel.Companies)
-                                {
-                                    <option value="@company.CompanyID">
-                                        @company.Name
-                                    </option>
-                                }
-                            </select>
-                        }
-                        else
-                        {
-                            <input type="text" class="form-control" value="@viewModel.Ticket.CompanyName" readonly />
-                        }
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Locatie</label>
-                        @if (viewModel.IsEditMode)
-                        {
-                            <select class="form-select" value="@viewModel.Ticket.Location" @onchange="OnLocationChanged">
-                                <option value="">-- Selecteer locatie --</option>
-                                @foreach (string location in viewModel.AvailableLocations)
-                                {
-                                    <option value="@location">
-                                        @location
-                                    </option>
-                                }
-                            </select>
-                        }
-                        else
-                        {
-                            <input type="text" class="form-control" value="@(viewModel.Ticket.Location ?? "-")" readonly />
-                        }
-                    </div>
+        @if (viewModel.Ticket != null && viewModel.Ticket.IsUrgent)
+        {
+            <div class="alert alert-danger mb-4 text-center">
+                🚨 <strong>SPOEDTICKET!</strong> Dit ticket vereist directe aandacht.
+            </div>
+        }
 
-                    <div class="mb-3">
-                        <label class="form-label">Object</label>
-                        @if (viewModel.IsEditMode)
-                        {
-                            <select class="form-select" value="@(viewModel.Ticket.ObjectId?.ToString() ?? "")"
-                                    @onchange="@(e => OnObjectChanged(e.Value?.ToString()))">
-                                <option value="">-- Geen object --</option>
-                                @foreach (ObjectDto obj in viewModel.GetFilteredObjects())
-                                {
-                                    <option value="@obj.ObjectID">@obj.Name - @obj.Location</option>
-                                }
-                            </select>
-                        }
-                        else
-                        {
-                            <input type="text" class="form-control" value="@(viewModel.Ticket.ObjectName ?? "-")" readonly />
-                        }
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Monteur</label>
-                        @if (viewModel.IsEditMode)
-                        {
-                            <select class="form-select" value="@(viewModel.Ticket.MechanicID?.ToString() ?? "")"
-                                    @onchange="@(e => OnMechanicChanged(e.Value?.ToString()))">
-                                <option value="">-- Nog niet toegewezen --</option>
-                                @foreach (MechanicDto mechanic in viewModel.Mechanics)
-                                {
-                                    <option value="@mechanic.MechanicID">@mechanic.Name</option>
-                                }
-                            </select>
-                        }
-                        else
-                        {
-                            <input type="text" class="form-control" value="@(viewModel.Ticket.MechanicName ?? "Niet toegewezen")" readonly />
-                        }
-                    </div>
-                </div>
+        <AlertMessage Message="@viewModel.ErrorMessage" Type="danger" Icon="exclamation-triangle" />
+        <AlertMessage Message="@viewModel.SuccessMessage" Type="success" Icon="check-circle" />
 
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">Status *</label>
-                        @if (viewModel.IsEditMode)
-                        {
-                            <InputSelect class="form-select" @bind-Value="viewModel.Ticket.Status">
-                                @foreach (TicketStatus status in Enum.GetValues(typeof(TicketStatus)))
-                                {
-                                    <option value="@status">@GetStatusDisplayName(status)</option>
-                                }
-                            </InputSelect>
-                        }
-                        else
-                        {
-                            <input type="text" class="form-control" value="@GetStatusDisplayName(viewModel.Ticket.Status)" readonly />
-                        }
-                    </div>
+        @if (viewModel.IsLoading)
+        {
+            <LoadingSpinner Message="Ticket laden..." />
+        }
+        else if (viewModel.Ticket == null)
+        {
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> Ticket niet gevonden.
+            </div>
+        }
+        else
+        {
+            <EditForm Model="@viewModel.Ticket" OnValidSubmit="HandleSubmit" FormName="editTicketForm">
+                <DataAnnotationsValidator />
 
-                    <div class="mb-3">
-                        <label class="form-label">Prioriteit *</label>
-                        @if (viewModel.IsEditMode)
-                        {
-                            <InputSelect class="form-select" @bind-Value="viewModel.Ticket.Priority">
-                                @foreach (Priority priority in Enum.GetValues(typeof(Priority)))
-                                {
-                                    <option value="@priority">@GetPriorityDisplayName(priority)</option>
-                                }
-                            </InputSelect>
-                        }
-                        else
-                        {
-                            <input type="text" class="form-control" value="@GetPriorityDisplayName(viewModel.Ticket.Priority)" readonly />
-                        }
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Reactietijd *</label>
-                        @if (viewModel.IsEditMode)
-                        {
-                            <InputSelect class="form-select" @bind-Value="viewModel.Ticket.ReactionTime">
-                                @foreach (ReactionTime reactionTime in Enum.GetValues(typeof(ReactionTime)))
-                                {
-                                    <option value="@reactionTime">@reactionTime</option>
-                                }
-                            </InputSelect>
-                        }
-                        else
-                        {
-                            <input type="text" class="form-control" value="@viewModel.Ticket.ReactionTime.ToString()" readonly />
-                        }
-                    </div>
-
-                    @if (viewModel.IsEditMode && viewModel.Ticket != null)
-                    {
-                        <div class="mb-3 form-check form-switch">
-                            <InputCheckbox @bind-Value="viewModel.Ticket.IsUrgent" class="form-check-input" id="spoedToggle" />
-                            <label class="form-check-label" for="spoedToggle">
-                                <span class="badge bg-danger">SPOED</span> Markeer als spoedticket
-                            </label>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Bedrijf *</label>
+                            @if (viewModel.IsEditMode)
+                            {
+                                <select class="form-select" value="@viewModel.Ticket.CompanyID" @onchange="OnCompanyChanged">
+                                    <option value="0">-- Selecteer bedrijf --</option>
+                                    @foreach (CompanyDto company in availableCompanies)
+                                    {
+                                        <option value="@company.CompanyID">@company.Name</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" value="@viewModel.Ticket.CompanyName" readonly />
+                            }
                         </div>
-                    }
+
+                        <div class="mb-3">
+                            <label class="form-label">Locatie</label>
+                            @if (viewModel.IsEditMode)
+                            {
+                                <select class="form-select" value="@viewModel.Ticket.Location" @onchange="OnLocationChanged">
+                                    <option value="">-- Selecteer locatie --</option>
+                                    @foreach (string location in viewModel.AvailableLocations)
+                                    {
+                                        <option value="@location">@location</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" value="@(viewModel.Ticket.Location ?? "-")" readonly />
+                            }
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Object</label>
+                            @if (viewModel.IsEditMode)
+                            {
+                                <select class="form-select" value="@(viewModel.Ticket.ObjectId?.ToString() ?? "")"
+                                        @onchange="@(e => OnObjectChanged(e.Value?.ToString()))">
+                                    <option value="">-- Geen object --</option>
+                                    @foreach (ObjectDto obj in availableObjects)
+                                    {
+                                        <option value="@obj.ObjectID">@obj.Name - @obj.Location</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" value="@(viewModel.Ticket.ObjectName ?? "-")" readonly />
+                            }
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Monteur</label>
+                            @if (viewModel.IsEditMode)
+                            {
+                                <select class="form-select" value="@(viewModel.Ticket.MechanicID?.ToString() ?? "")"
+                                        @onchange="@(e => OnMechanicChanged(e.Value?.ToString()))">
+                                    <option value="">-- Nog niet toegewezen --</option>
+                                    @foreach (MechanicDto mechanic in availableMechanics)
+                                    {
+                                        <option value="@mechanic.MechanicID">@mechanic.Name</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" value="@(viewModel.Ticket.MechanicName ?? "Niet toegewezen")" readonly />
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Status *</label>
+                            @if (viewModel.IsEditMode)
+                            {
+                                <InputSelect class="form-select" @bind-Value="viewModel.Ticket.Status">
+                                    @foreach (TicketStatus status in Enum.GetValues(typeof(TicketStatus)))
+                                    {
+                                        <option value="@status">@GetStatusDisplayName(status)</option>
+                                    }
+                                </InputSelect>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" value="@GetStatusDisplayName(viewModel.Ticket.Status)" readonly />
+                            }
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Prioriteit *</label>
+                            @if (viewModel.IsEditMode)
+                            {
+                                <InputSelect class="form-select" @bind-Value="viewModel.Ticket.Priority">
+                                    @foreach (Priority priority in Enum.GetValues(typeof(Priority)))
+                                    {
+                                        <option value="@priority">@GetPriorityDisplayName(priority)</option>
+                                    }
+                                </InputSelect>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" value="@GetPriorityDisplayName(viewModel.Ticket.Priority)" readonly />
+                            }
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Reactietijd *</label>
+                            @if (viewModel.IsEditMode)
+                            {
+                                <InputSelect class="form-select" @bind-Value="viewModel.Ticket.ReactionTime">
+                                    @foreach (ReactionTime reactionTime in Enum.GetValues(typeof(ReactionTime)))
+                                    {
+                                        <option value="@reactionTime">@reactionTime</option>
+                                    }
+                                </InputSelect>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" value="@viewModel.Ticket.ReactionTime.ToString()" readonly />
+                            }
+                        </div>
+
+                        @if (viewModel.IsEditMode && viewModel.Ticket != null)
+                        {
+                            <div class="mb-3 form-check form-switch">
+                                <InputCheckbox @bind-Value="viewModel.Ticket.IsUrgent" class="form-check-input" id="spoedToggle" />
+                                <label class="form-check-label" for="spoedToggle">
+                                    <span class="badge bg-danger">SPOED</span> Markeer als spoedticket
+                                </label>
+                            </div>
+                        }
+                    </div>
                 </div>
-            </div>
 
-            <div class="mb-3">
-                <label class="form-label">Beschrijving *</label>
-                <InputTextArea class="form-control" @bind-Value="viewModel.Ticket.Description"
-                               rows="4" readonly="@(!viewModel.IsEditMode)" />
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Beschrijving *</label>
+                    <InputTextArea class="form-control" @bind-Value="viewModel.Ticket.Description"
+                                   rows="4" readonly="@(!viewModel.IsEditMode)" />
+                </div>
 
-            <div class="mb-3">
-                <label class="form-label">Notitie</label>
-                <InputTextArea class="form-control" @bind-Value="viewModel.Ticket.Note"
-                               rows="3" readonly="@(!viewModel.IsEditMode)" />
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Notitie</label>
+                    <InputTextArea class="form-control" @bind-Value="viewModel.Ticket.Note"
+                                   rows="3" readonly="@(!viewModel.IsEditMode)" />
+                </div>
 
-            @if (viewModel.IsEditMode)
+                @if (viewModel.IsEditMode)
+                {
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" disabled="@viewModel.IsSaving">
+                            @if (viewModel.IsSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            <i class="bi bi-save"></i> Opslaan
+                        </button>
+                        <button type="button" class="btn btn-secondary" @onclick="CancelEdit">
+                            <i class="bi bi-x-circle"></i> Annuleren
+                        </button>
+                    </div>
+                }
+            </EditForm>
+
+            @* Delete sectie - alleen voor Admin EN niet in edit mode *@
+            @if (!viewModel.IsEditMode && canDelete)
             {
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary" disabled="@viewModel.IsSaving">
-                        @if (viewModel.IsSaving)
+                <div class="card border-danger mt-4">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Gevaarlijke Zone</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-danger mb-2">
+                            <strong>Let op:</strong> Het verwijderen van een ticket kan niet ongedaan worden gemaakt.
+                        </p>
+                        <button class="btn btn-danger" @onclick="ShowDeleteModal" disabled="@isDeleting">
+                            <i class="bi bi-trash"></i> Ticket Verwijderen
+                        </button>
+                    </div>
+                </div>
+            }
+        }
+    }
+</div>
+
+@* Delete Confirmation Modal *@
+@if (showDeleteModal && viewModel.Ticket != null)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-exclamation-triangle"></i> Ticket Verwijderen
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <p>Weet je zeker dat je ticket <strong>@viewModel.Ticket.TicketCode</strong> wilt verwijderen?</p>
+                    <p class="text-danger mb-0">
+                        <strong><i class="bi bi-exclamation-circle"></i> Deze actie kan niet ongedaan worden gemaakt!</strong>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelDelete" disabled="@isDeleting">
+                        Annuleren
+                    </button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@isDeleting">
+                        @if (isDeleting)
                         {
                             <span class="spinner-border spinner-border-sm me-2"></span>
                         }
-                        <i class="bi bi-save"></i> Opslaan
-                    </button>
-                    <button type="button" class="btn btn-secondary" @onclick="CancelEdit">
-                        <i class="bi bi-x-circle"></i> Annuleren
+                        <i class="bi bi-trash"></i> Verwijderen
                     </button>
                 </div>
-            }
-        </EditForm>
-    }
-</div>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     [Parameter] public int TicketId { get; set; }
     private TicketDetailViewModel viewModel = new();
+
+    // ACCESS CONTROL VARIABELEN
+    private bool hasAccess = false;
+    private bool canEdit = false;
+    private bool canDelete = false;
+    private bool isCheckingAccess = true;
+
+    // Delete modal state
+    private bool showDeleteModal = false;
+    private bool isDeleting = false;
+    private string deleteError = string.Empty;
+
+    // Dropdown data
+    private List<CompanyDto> availableCompanies = new();
+    private List<MechanicDto> availableMechanics = new();
+    private List<ObjectDto> availableObjects = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -244,19 +340,126 @@
 
         viewModel.OnStateChanged += StateHasChanged;
 
+        // Laad eerst het ticket
         await viewModel.LoadTicketAsync(() => ApiService.GetTicketByIdAsync(TicketId));
-        await viewModel.LoadDropdownDataAsync(
-            () => ApiService.GetAllCompaniesAsync(),
-            () => ApiService.GetActiveMechanicsAsync()
-        );
 
+        // CHECK TOEGANG
+        await CheckAccess();
+
+        // Laad dropdown data alleen als user toegang heeft
+        if (hasAccess)
+        {
+            await LoadDropdownData();
+
+            if (viewModel.Ticket != null && viewModel.Ticket.CompanyID > 0)
+            {
+                await viewModel.LoadCompanyDataAsync(
+                    viewModel.Ticket.CompanyID,
+                    ObjectApiService.GetLocationsByCompanyAsync,
+                    ObjectApiService.GetObjectsByCompanyAsync
+                );
+            }
+        }
+    }
+
+    /// <summary>
+    /// CHECK OF USER TOEGANG HEEFT TOT DIT TICKET
+    /// </summary>
+    private async Task CheckAccess()
+    {
+        isCheckingAccess = true;
+
+        if (viewModel.Ticket == null)
+        {
+            hasAccess = false;
+            canEdit = false;
+            canDelete = false;
+            isCheckingAccess = false;
+            return;
+        }
+
+        // Admin mag alles
+        if (await AuthService.IsAdminAsync())
+        {
+            hasAccess = true;
+            canEdit = true;
+            canDelete = true;
+            isCheckingAccess = false;
+            return;
+        }
+
+        var userId = await AuthService.GetUserIdAsync();
+        var userCompanyIds = await AuthService.GetUserCompanyIdsAsync();
+
+        // Monteur: alleen eigen tickets
+        if (await AuthService.IsMechanicAsync())
+        {
+            hasAccess = viewModel.Ticket.MechanicID.HasValue && viewModel.Ticket.MechanicID.Value == userId;
+            canEdit = hasAccess;
+            canDelete = false;
+            isCheckingAccess = false;
+            return;
+        }
+
+        // Manager: tickets van eigen bedrijf
+        if (await AuthService.IsManagerAsync())
+        {
+            hasAccess = userCompanyIds.Contains(viewModel.Ticket.CompanyID);
+            canEdit = hasAccess;
+            canDelete = false;
+            isCheckingAccess = false;
+            return;
+        }
+
+        // Melder: alleen bekijken, niet bewerken
+        if (await AuthService.IsReporterAsync())
+        {
+            hasAccess = userCompanyIds.Contains(viewModel.Ticket.CompanyID);
+            canEdit = false;  // ❗ BELANGRIJK: Melder kan NIET bewerken!
+            canDelete = false;
+            isCheckingAccess = false;
+            return;
+        }
+
+        hasAccess = false;
+        canEdit = false;
+        canDelete = false;
+        isCheckingAccess = false;
+    }
+
+    /// <summary>
+    /// Laad dropdown data op basis van rol
+    /// </summary>
+    private async Task LoadDropdownData()
+    {
+        // Laad companies
+        var allCompanies = await CompanyApiService.GetAllCompaniesAsync();
+        if (await AuthService.IsAdminAsync())
+        {
+            availableCompanies = allCompanies;
+        }
+        else
+        {
+            var userCompanyIds = await AuthService.GetUserCompanyIdsAsync();
+            availableCompanies = allCompanies.Where(c => userCompanyIds.Contains(c.CompanyID)).ToList();
+        }
+
+        // Laad mechanics
+        var allMechanics = await MechanicApiService.GetActiveMechanicsAsync();
+        if (await AuthService.IsAdminAsync())
+        {
+            availableMechanics = allMechanics;
+        }
+        else
+        {
+            var userCompanyIds = await AuthService.GetUserCompanyIdsAsync();
+            availableMechanics = allMechanics.Where(m => m.CompanyID.HasValue && userCompanyIds.Contains(m.CompanyID.Value)).ToList();
+        }
+
+        // Laad objects van het huidige bedrijf
         if (viewModel.Ticket != null && viewModel.Ticket.CompanyID > 0)
         {
-            await viewModel.LoadCompanyDataAsync(
-                viewModel.Ticket.CompanyID,
-                ObjectApiService.GetLocationsByCompanyAsync,
-                ObjectApiService.GetObjectsByCompanyAsync
-            );
+            availableObjects = await ObjectApiService.GetObjectsByCompanyAsync(viewModel.Ticket.CompanyID);
         }
     }
 
@@ -306,6 +509,8 @@
                     ObjectApiService.GetObjectsByCompanyAsync
                 );
 
+                availableObjects = await ObjectApiService.GetObjectsByCompanyAsync(companyId);
+
                 if (viewModel.Ticket != null)
                 {
                     viewModel.Ticket.Location = string.Empty;
@@ -348,6 +553,43 @@
         await viewModel.LoadTicketAsync(() => ApiService.GetTicketByIdAsync(TicketId));
     }
 
+    // ==================== DELETE FUNCTIONALITY ====================
+
+    private void ShowDeleteModal()
+    {
+        showDeleteModal = true;
+        deleteError = string.Empty;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteModal = false;
+        deleteError = string.Empty;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (viewModel.Ticket == null) return;
+
+        isDeleting = true;
+        deleteError = string.Empty;
+
+        try
+        {
+            await ApiService.DeleteTicketAsync(TicketId);
+            Navigation.NavigateTo("/ticket");
+        }
+        catch (Exception ex)
+        {
+            deleteError = $"Fout bij verwijderen: {ex.Message}";
+            viewModel.ErrorMessage = deleteError;
+            isDeleting = false;
+            showDeleteModal = false;
+        }
+    }
+
+    // ==================== HELPER METHODS ====================
+
     private void GoBack() => Navigation.NavigateTo("/ticket");
 
     private string GetStatusDisplayName(TicketStatus s) => s switch
@@ -376,6 +618,8 @@
         Priority.Critical => "Kritiek",
         _ => p.ToString()
     };
+
+    // ==================== CLEANUP ====================
 
     public void Dispose()
     {

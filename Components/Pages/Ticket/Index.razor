@@ -1,12 +1,17 @@
 ﻿@page "/Ticket"
+@attribute [Authorize(Roles = "Fixility Admin,Bedrijfsbeheerder,Monteur,Melder")]
+
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Ticket
 @using ZorgmeldSysteem.Blazor.Models.Enums
 @using ZorgmeldSysteem.Blazor.Services
+@using ZorgmeldSysteem.Blazor.Services.Auth
 @using ZorgmeldSysteem.Blazor.Services.Helpers
 @using ZorgmeldSysteem.Blazor.ViewModels.Ticket
 @using ZorgmeldSysteem.Blazor.Components.Common
 @inject Services.Api.TicketApiService TicketApiService
+@inject AuthorizationService AuthService
 @inject TicketDisplayService DisplayService
 @inject NavigationManager Navigation
 @implements IDisposable
@@ -17,10 +22,36 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Tickets Overzicht</h3>
-        <button class="btn btn-primary" @onclick="GoToCreateTicket">
-            <i class="bi bi-plus-circle"></i> Nieuw Ticket
-        </button>
+
+        <!-- Alleen Admin, Manager en Reporter mogen tickets aanmaken -->
+        <AuthorizeView Roles="Fixility Admin,Bedrijfsbeheerder,Melder">
+            <Authorized>
+                <button class="btn btn-primary" @onclick="GoToCreateTicket">
+                    <i class="bi bi-plus-circle"></i> Nieuw Ticket
+                </button>
+            </Authorized>
+        </AuthorizeView>
     </div>
+
+    <!-- 🔍 DEBUG INFO - TIJDELIJK! -->
+    @if (!string.IsNullOrEmpty(debugInfo))
+    {
+        <div class="alert alert-warning alert-dismissible fade show">
+            <strong>🔍 DEBUG INFO:</strong><br />
+            <pre style="margin: 0; white-space: pre-wrap;">@debugInfo</pre>
+            <button type="button" class="btn-close" @onclick="() => debugInfo = string.Empty"></button>
+        </div>
+    }
+
+    <!-- Info message voor Monteurs -->
+    @if (showMechanicInfo)
+    {
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle"></i>
+            <strong>Let op:</strong> Je ziet alleen tickets die aan jou zijn toegewezen.
+            <button type="button" class="btn-close" @onclick="() => showMechanicInfo = false"></button>
+        </div>
+    }
 
     @if (!string.IsNullOrEmpty(viewModel.ErrorMessage))
     {
@@ -31,7 +62,7 @@
 
     @if (viewModel.IsLoading)
     {
-        <LoadingSpinner Message="Monteurs laden..." />
+        <LoadingSpinner Message="Tickets laden..." />
     }
     else
     {
@@ -125,7 +156,7 @@
                         @if (context.IsUrgent)
                         {
                             <span class="badge bg-danger fw-bold pulse-urgent" title="Spoedticket">
-                               !
+                                !
                             </span>
                         }
                     </TemplateColumn>
@@ -142,6 +173,9 @@
                     <PropertyColumn Property="@(t => t.Description)" Title="Beschrijving" Sortable="true" />
 
                     <PropertyColumn Property="@(t => t.CompanyName)" Title="Bedrijf" Sortable="true" />
+
+                    <!-- 🔍 DEBUG: Toon MechanicID -->
+                    <PropertyColumn Property="@(t => t.MechanicID)" Title="DEBUG: MechID" Sortable="true" />
 
                     <TemplateColumn Title="Status" Sortable="true"
                                     SortBy="@(GridSort<TicketDto>.ByAscending(t => t.Status))">
@@ -221,17 +255,95 @@
 </style>
 
 @code {
-    // Alleen nog state die echt bij de UI hoort
     private TicketsViewModel viewModel = new();
     private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
+    private bool showMechanicInfo = false;
+    private string debugInfo = "";  // 🔍 DEBUG
 
     protected override async Task OnInitializedAsync()
     {
         // Subscribe op state changes van de ViewModel
         viewModel.OnStateChanged += StateHasChanged;
 
-        // Laad de tickets via de ViewModel
-        await viewModel.LoadTicketsAsync(() => TicketApiService.GetAllTicketsAsync());
+        // Check of user een monteur is voor info message
+        showMechanicInfo = await AuthService.IsMechanicAsync();
+
+        // 🔍 DEBUG: Collect info
+        var currentUser = await AuthService.GetCurrentUserAsync();
+        var isAdmin = await AuthService.IsAdminAsync();
+        var isManager = await AuthService.IsManagerAsync();
+        var isMechanic = await AuthService.IsMechanicAsync();
+        var isReporter = await AuthService.IsReporterAsync();
+        var userId = await AuthService.GetUserIdAsync();
+        var companyIds = await AuthService.GetUserCompanyIdsAsync();
+
+        debugInfo = $"User: {currentUser?.FullName} (ID: {userId})\n";
+        debugInfo += $"Email: {currentUser?.Email}\n";
+        debugInfo += $"Role: {currentUser?.UserLevelName}\n";
+        debugInfo += $"IsAdmin: {isAdmin}, IsManager: {isManager}, IsMechanic: {isMechanic}, IsReporter: {isReporter}\n";
+        debugInfo += $"CompanyIDs: {string.Join(", ", companyIds)}\n";
+
+        // Laad de tickets via de ViewModel MET role-based filtering
+        await viewModel.LoadTicketsAsync(async () =>
+        {
+            // Haal ALLE tickets op van de API
+            var allTickets = await TicketApiService.GetAllTicketsAsync();
+
+            debugInfo += $"\nTotal tickets from API: {allTickets.Count}\n";
+            debugInfo += $"Tickets with MechanicID:\n";
+            foreach (var t in allTickets.Take(5))  // Eerste 5 voor debug
+            {
+                debugInfo += $"  - {t.TicketCode}: MechanicID={t.MechanicID?.ToString() ?? "NULL"}, Company={t.CompanyName}\n";
+            }
+
+            // Filter op basis van gebruikersrol
+            var filtered = await FilterTicketsByRole(allTickets);
+
+            debugInfo += $"\nAfter filtering: {filtered.Count} tickets\n";
+
+            return filtered;
+        });
+
+        StateHasChanged();  // Force UI update om debug info te tonen
+    }
+
+    /// <summary>
+    /// Filter tickets op basis van gebruikersrol
+    /// </summary>
+    private async Task<List<TicketDto>> FilterTicketsByRole(List<TicketDto> tickets)
+    {
+        // Admin ziet ALLES
+        if (await AuthService.IsAdminAsync())
+        {
+            debugInfo += "Filter: User is Admin - showing ALL tickets\n";
+            return tickets;
+        }
+
+        var userId = await AuthService.GetUserIdAsync();
+        var userCompanyIds = await AuthService.GetUserCompanyIdsAsync();
+
+        // Monteur: ALLEEN tickets toegewezen aan deze monteur
+        if (await AuthService.IsMechanicAsync())
+        {
+            debugInfo += $"Filter: User is Mechanic (UserID={userId})\n";
+            debugInfo += $"Filtering for tickets where MechanicID == {userId}\n";
+
+            var filtered = tickets
+                .Where(t => t.MechanicID.HasValue && t.MechanicID.Value == userId)
+                .ToList();
+
+            debugInfo += $"Found {filtered.Count} matching tickets\n";
+
+            return filtered;
+        }
+
+        // Manager/Reporter: ALLEEN tickets van eigen bedrijf(ven)
+        debugInfo += $"Filter: User is Manager/Reporter\n";
+        debugInfo += $"Filtering for CompanyIDs: {string.Join(", ", userCompanyIds)}\n";
+
+        return tickets
+            .Where(t => userCompanyIds.Contains(t.CompanyID))
+            .ToList();
     }
 
     private void ViewTicket(int ticketId)

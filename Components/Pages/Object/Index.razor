@@ -1,8 +1,13 @@
 ﻿@page "/object"
+@attribute [Authorize(Roles = "Admin,Administrator,Fixility Admin,Manager,Beheerder,Bedrijfsbeheerder,Mechanic,Monteur,Reporter,Melder")]
+
+@using Microsoft.AspNetCore.Authorization
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Object
 @using ZorgmeldSysteem.Blazor.Services
+@using ZorgmeldSysteem.Blazor.Services.Auth
 @using ZorgmeldSysteem.Blazor.Components.Common
 @inject Services.Api.ObjectApiService ObjectApiService
+@inject AuthorizationService AuthService
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
@@ -11,9 +16,15 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Objecten Overzicht</h3>
-        <button class="btn btn-primary" @onclick="GoToCreateObject">
-            <i class="bi bi-plus-circle"></i> Nieuw Object
-        </button>
+
+        @* Nieuw Object button alleen voor Admin + Manager *@
+        <AuthorizeView Roles="Admin,Administrator,Fixility Admin,Manager,Beheerder,Bedrijfsbeheerder">
+            <Authorized>
+                <button class="btn btn-primary" @onclick="GoToCreateObject">
+                    <i class="bi bi-plus-circle"></i> Nieuw Object
+                </button>
+            </Authorized>
+        </AuthorizeView>
     </div>
 
     <AlertMessage Message="@errorMessage" Type="danger" Icon="exclamation-triangle" />
@@ -22,9 +33,7 @@
     {
         <LoadingSpinner Message="Objecten laden..." />
     }
-
-
-    else if (objects.Count == 0)
+    else if (filteredObjects.Count == 0)
     {
         <div class="alert alert-info">
             <i class="bi bi-info-circle"></i> Geen objecten gevonden.
@@ -134,12 +143,12 @@
             }
         </div>
 
-        <p class="text-muted mt-3">@FilteredObjects.Count van @objects.Count objecten</p>
+        <p class="text-muted mt-3">@FilteredObjects.Count van @filteredObjects.Count objecten</p>
     }
 </div>
 
 @code {
-    private List<ObjectDto> objects = new();
+    private List<ObjectDto> filteredObjects = new();
     private bool isLoading = true;
     private string errorMessage = string.Empty;
 
@@ -148,7 +157,7 @@
     private string filterCompany = string.Empty;
     private string filterLocation = string.Empty;
 
-    private List<string> UniqueCompanies => objects
+    private List<string> UniqueCompanies => filteredObjects
         .Select(o => o.CompanyName)
         .Distinct()
         .OrderBy(c => c)
@@ -161,7 +170,7 @@
             if (string.IsNullOrEmpty(filterCompany))
                 return new List<string>();
 
-            return objects
+            return filteredObjects
                 .Where(o => o.CompanyName == filterCompany)
                 .Select(o => o.Location)
                 .Distinct()
@@ -174,7 +183,7 @@
     {
         get
         {
-            var filtered = objects.AsEnumerable();
+            var filtered = filteredObjects.AsEnumerable();
 
             // Zoek filter
             if (!string.IsNullOrWhiteSpace(searchQuery))
@@ -207,7 +216,9 @@
     {
         try
         {
-            objects = await ObjectApiService.GetAllObjectsAsync();
+            // 🔐 Laad objecten MET ROLE-BASED FILTERING
+            var allObjects = await ObjectApiService.GetAllObjectsAsync();
+            filteredObjects = await FilterObjectsByRole(allObjects);
         }
         catch (Exception ex)
         {
@@ -217,6 +228,24 @@
         {
             isLoading = false;
         }
+    }
+
+    /// <summary>
+    /// 🔐 Filter objecten op basis van gebruikersrol
+    /// </summary>
+    private async Task<List<ObjectDto>> FilterObjectsByRole(List<ObjectDto> objects)
+    {
+        // Admin ziet ALLES
+        if (await AuthService.IsAdminAsync())
+        {
+            return objects;
+        }
+
+        // Iedereen anders (Manager, Mechanic, Reporter): alleen objecten van eigen bedrijf(ven)
+        var userCompanyIds = await AuthService.GetUserCompanyIdsAsync();
+        return objects
+            .Where(o => userCompanyIds.Contains(o.CompanyID))
+            .ToList();
     }
 
     private void ClearFilters()

@@ -1,10 +1,15 @@
 ﻿@page "/mechanic/create"
+@attribute [Authorize(Roles = "Admin,Administrator,Fixility Admin,Manager,Beheerder,Bedrijfsbeheerder")]
+
+@using Microsoft.AspNetCore.Authorization
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Mechanic
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Company
 @using ZorgmeldSysteem.Blazor.Models.Enums
 @using ZorgmeldSysteem.Blazor.Services.Api
+@using ZorgmeldSysteem.Blazor.Services.Auth
 @inject MechanicApiService MechanicApiService
 @inject CompanyApiService CompanyApiService
+@inject AuthorizationService AuthService
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
@@ -79,7 +84,7 @@
                             <label class="form-label">Bedrijf *</label>
                             <InputSelect class="form-select" @bind-Value="newMechanic.CompanyID">
                                 <option value="0">-- Selecteer bedrijf --</option>
-                                @foreach (var company in companies)
+                                @foreach (var company in availableCompanies)
                                 {
                                     <option value="@company.CompanyID">@company.Name</option>
                                 }
@@ -137,22 +142,38 @@
 
 @code {
     private CreateMechanicDto newMechanic = new();
-    private List<CompanyDto> companies = new();
+    private List<CompanyDto> availableCompanies = new();
     private bool isSaving = false;
     private bool isLoading = false;
     private string errorMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadCompanies();
+        await LoadFilteredCompanies();
     }
 
-    private async Task LoadCompanies()
+    /// <summary>
+    /// 🔐 Laad bedrijven met role-based filtering
+    /// </summary>
+    private async Task LoadFilteredCompanies()
     {
         isLoading = true;
         try
         {
-            companies = await CompanyApiService.GetAllCompaniesAsync();
+            var allCompanies = await CompanyApiService.GetAllCompaniesAsync();
+
+            // Admin ziet alle bedrijven
+            if (await AuthService.IsAdminAsync())
+            {
+                availableCompanies = allCompanies;
+                return;
+            }
+
+            // Manager: alleen eigen bedrijf(ven)
+            var userCompanyIds = await AuthService.GetUserCompanyIdsAsync();
+            availableCompanies = allCompanies
+                .Where(c => userCompanyIds.Contains(c.CompanyID))
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -189,7 +210,7 @@
             if (result != null)
             {
                 // Succes - navigeer naar overzicht
-                Navigation.NavigateTo("/mechanics");
+                Navigation.NavigateTo("/mechanic");
             }
             else
             {
@@ -212,7 +233,7 @@
 
     private void Cancel()
     {
-        Navigation.NavigateTo("/mechanics");
+        Navigation.NavigateTo("/mechanic");
     }
 
     private string GetMechanicTypeDisplayName(MechanicType type)

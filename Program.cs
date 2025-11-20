@@ -13,11 +13,15 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // ==================== AUTHENTICATION ====================
+builder.Services.AddAuthentication();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
     provider.GetRequiredService<CustomAuthenticationStateProvider>());
+
+// ==================== AUTHORIZATION ====================
+builder.Services.AddScoped<AuthorizationService>();
 
 // ==================== HTTP MESSAGE HANDLER ====================
 builder.Services.AddScoped<AuthHttpMessageHandler>();
@@ -75,6 +79,12 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// ==================== MIDDLEWARE ====================
+
+app.UseAuthentication();  
+app.UseAuthorization();
+
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()

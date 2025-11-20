@@ -164,21 +164,33 @@ select:focus {
 .navbar-logo {
     object-fit: contain;
     transition: opacity 0.3s ease;
-    max-height: 4rem; 
+    max-height: 4rem;
     height: auto;
     width: auto;
-}
+    transform: scale(1.15);
+    transition: transform 0.5s ease;
+    filter: brightness(1.9) drop-shadow(0 1px 10px rgba(255, 255, 255, 0.5));
 
+}
     .navbar-logo:hover {
         opacity: 0.85;
+        animation: pulse 1s infinite;
+        transform: scale(1.10);
     }
+
+.navbar {
+    padding-top: 0rem !important;
+    padding-bottom: 0rem !important;
+}
+
+
 
 .navbar-brand {
     padding: 0.5rem 1rem;
 }
 
 /* Nav items */
-.nav-item.px-3.mt-3 {
+    .nav-item.px-3.mt-3 {
     padding-top: 1rem !important;
 }
 

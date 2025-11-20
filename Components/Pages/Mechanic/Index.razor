@@ -1,13 +1,18 @@
 ﻿@page "/mechanic"
+@attribute [Authorize(Roles = "Admin,Administrator,Fixility Admin,Manager,Beheerder,Bedrijfsbeheerder")]
+
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Mechanic
 @using ZorgmeldSysteem.Blazor.Models.Enums
 @using ZorgmeldSysteem.Blazor.Services.Api
+@using ZorgmeldSysteem.Blazor.Services.Auth
 @using ZorgmeldSysteem.Blazor.Services.Helpers
 @using ZorgmeldSysteem.Blazor.Components.Common
 @using ZorgmeldSysteem.Blazor.ViewModels.Mechanic
 @inject MechanicApiService MechanicApiService
 @inject MechanicDisplayService DisplayService
+@inject AuthorizationService AuthService
 @inject NavigationManager Navigation
 @implements IDisposable
 @rendermode InteractiveServer
@@ -17,10 +22,26 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Monteurs Overzicht</h3>
-        <button class="btn btn-primary" @onclick="GoToCreateMechanic">
-            <i class="bi bi-plus-circle"></i> Nieuwe Monteur
-        </button>
+
+        @* Nieuwe Monteur button voor Admin + Manager *@
+        <AuthorizeView Roles="Admin,Administrator,Fixility Admin,Manager,Beheerder,Bedrijfsbeheerder">
+            <Authorized>
+                <button class="btn btn-primary" @onclick="GoToCreateMechanic">
+                    <i class="bi bi-plus-circle"></i> Nieuwe Monteur
+                </button>
+            </Authorized>
+        </AuthorizeView>
     </div>
+
+    @* Info message voor Managers *@
+    @if (showManagerInfo)
+    {
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle"></i>
+            <strong>Let op:</strong> Je ziet alleen monteurs van jouw bedrijf.
+            <button type="button" class="btn-close" @onclick="() => showManagerInfo = false"></button>
+        </div>
+    }
 
     <AlertMessage Message="@viewModel.ErrorMessage" Type="danger" Icon="exclamation-triangle" />
     <AlertMessage Message="@viewModel.SuccessMessage" Type="success" Icon="check-circle" Dismissible="true" />
@@ -128,16 +149,21 @@
                                     title="Bekijken">
                                 <i class="bi bi-eye"></i>
                             </button>
-                            <button class="btn btn-outline-warning"
-                                    @onclick="() => EditMechanic(context.MechanicID)"
-                                    title="Bewerken">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-outline-danger"
-                                    @onclick="() => viewModel.ShowDeleteConfirmation(context)"
-                                    title="Verwijderen">
-                                <i class="bi bi-trash"></i>
-                            </button>
+
+                            @* Edit/Delete buttons alleen voor Admin/Manager *@
+                            @if (canEditDelete)
+                            {
+                                <button class="btn btn-outline-warning"
+                                        @onclick="() => EditMechanic(context.MechanicID)"
+                                        title="Bewerken">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-outline-danger"
+                                        @onclick="() => viewModel.ShowDeleteConfirmation(context)"
+                                        title="Verwijderen">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            }
                         </div>
                     </TemplateColumn>
                 </QuickGrid>
@@ -148,28 +174,27 @@
     }
 </div>
 
-<ConfirmDialog 
-    Show="@(viewModel.MechanicToDelete != null)"
-    Title="Monteur Verwijderen"
-    Message="@($"Weet je zeker dat je {viewModel.MechanicToDelete?.Name} wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.")"
-    ConfirmText="Verwijderen"
-    CancelText="Annuleren"
-    ConfirmButtonType="danger"
-    Icon="exclamation-triangle"
-    IconColor="danger"
-    IsProcessing="@viewModel.IsDeleting"
-    OnConfirm="ConfirmDelete"
-    OnCancel="viewModel.CancelDelete" />
+<ConfirmDialog Show="@(viewModel.MechanicToDelete != null)"
+               Title="Monteur Verwijderen"
+               Message="@($"Weet je zeker dat je {viewModel.MechanicToDelete?.Name} wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.")"
+               ConfirmText="Verwijderen"
+               CancelText="Annuleren"
+               ConfirmButtonType="danger"
+               Icon="exclamation-triangle"
+               IconColor="danger"
+               IsProcessing="@viewModel.IsDeleting"
+               OnConfirm="ConfirmDelete"
+               OnCancel="viewModel.CancelDelete" />
 
 <style>
     .quickgrid {
         font-size: 0.95rem;
     }
 
-    .quickgrid th {
-        background-color: #f8f9fa;
-        font-weight: 600;
-    }
+        .quickgrid th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
 
     .table-hover tbody tr:hover {
         background-color: #f5f5f5;
@@ -180,11 +205,42 @@
     private MechanicsViewModel viewModel = new();
     private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
 
+    // 🔐 AUTHORIZATION VARIABELEN
+    private bool showManagerInfo = false;
+    private bool canEditDelete = false;
+
     protected override async Task OnInitializedAsync()
     {
         viewModel.OnStateChanged += StateHasChanged;
-        
-        await viewModel.LoadMechanicsAsync(() => MechanicApiService.GetAllMechanicsAsync());
+
+        // Check rollen voor UI
+        showManagerInfo = await AuthService.IsManagerAsync() && !await AuthService.IsAdminAsync();
+        canEditDelete = await AuthService.IsAdminAsync() || await AuthService.IsManagerAsync();
+
+        // 🔐 Laad monteurs MET ROLE-BASED FILTERING
+        await viewModel.LoadMechanicsAsync(async () =>
+        {
+            var allMechanics = await MechanicApiService.GetAllMechanicsAsync();
+            return await FilterMechanicsByRole(allMechanics);
+        });
+    }
+
+    /// <summary>
+    /// 🔐 Filter monteurs op basis van gebruikersrol
+    /// </summary>
+    private async Task<List<MechanicDto>> FilterMechanicsByRole(List<MechanicDto> mechanics)
+    {
+        // Admin ziet ALLES
+        if (await AuthService.IsAdminAsync())
+        {
+            return mechanics;
+        }
+
+        // Manager: alleen monteurs van eigen bedrijf
+        var userCompanyIds = await AuthService.GetUserCompanyIdsAsync();
+        return mechanics
+            .Where(m => m.CompanyID.HasValue && userCompanyIds.Contains(m.CompanyID.Value))
+            .ToList();
     }
 
     private void ViewMechanic(int mechanicId)

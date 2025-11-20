@@ -1,8 +1,11 @@
 ﻿@page "/"
-@using ZorgmeldSysteem.Blazor.Services;
+@using Microsoft.AspNetCore.Components.Authorization
+@using ZorgmeldSysteem.Blazor.Services
 @using ZorgmeldSysteem.Blazor.Services.Api
+@using ZorgmeldSysteem.Blazor.Services.Auth
 @using ZorgmeldSysteem.Blazor.Components.Common
 @inject TicketApiService ApiService
+@inject AuthorizationService AuthService
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
@@ -11,7 +14,7 @@
 <div class="container mt-4">
     @if (isLoading)
     {
-        <LoadingSpinner Message="Statistieken laden..." />
+        <LoadingSpinner Message="Dashboard laden..." />
     }
     else if (!string.IsNullOrEmpty(errorMessage))
     {
@@ -19,109 +22,149 @@
     }
     else
     {
-      
-        <h4 class="mb-3 mt-5">Snelle Acties</h4>
+        <!-- Welkom bericht met gebruikersnaam en rol -->
+        <AuthorizeView>
+            <Authorized>
+                <div class="alert alert-info mb-4">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-circle"></i>
+                        Welkom, <strong>@context.User.Identity?.Name</strong>
+                        @if (!string.IsNullOrEmpty(userRole))
+                        {
+                            <span class="badge @GetRoleBadgeClass() ms-2">@userRole</span>
+                        }
+                    </h5>
+                </div>
+            </Authorized>
+        </AuthorizeView>
 
-        <!-- Snelle Acties - Tickets -->
-        <div class="row mb-3">
-            <div class="col-md-6 mb-3">
-                <div class="card h-100 shadow-sm hover-card">
-                    <div class="card-body d-flex align-items-center">
-                        <i class="bi bi-plus-square-fill display-3 text-primary me-3"></i>
-                        <div class="flex-grow-1">
-                            <h5 class="card-title mb-1">Nieuw Ticket</h5>
-                            <p class="card-text text-muted mb-2">Maak een nieuwe zorgmelding aan</p>
-                            <button class="btn btn-primary" @onclick="GoToCreateTicket">
-                                <i class="bi bi-plus-circle"></i> Aanmaken
-                            </button>
+        <h4 class="mb-3">Snelle Acties</h4>
+
+        <!-- Tickets Sectie - Iedereen kan tickets zien -->
+        <AuthorizeView>
+            <Authorized>
+                <div class="row mb-3">
+                    @* Nieuw Ticket: Admin, Manager, Reporter *@
+                    <AuthorizeView Roles="Fixility Admin,Bedrijfsbeheerder,Melder" Context="ticketAuth">
+                        <Authorized>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 shadow-sm hover-card">
+                                    <div class="card-body d-flex align-items-center">
+                                        <i class="bi bi-plus-square-fill display-3 text-primary me-3"></i>
+                                        <div class="flex-grow-1">
+                                            <h5 class="card-title mb-1">Nieuw Ticket</h5>
+                                            <p class="card-text text-muted mb-2">Maak een nieuwe zorgmelding aan</p>
+                                            <button class="btn btn-primary" @onclick="GoToCreateTicket">
+                                                <i class="bi bi-plus-circle"></i> Aanmaken
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </Authorized>
+                    </AuthorizeView>
+
+                    @* Alle Tickets: Iedereen *@
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100 shadow-sm hover-card">
+                            <div class="card-body d-flex align-items-center">
+                                <i class="bi bi-list-ul display-3 text-primary me-3"></i>
+                                <div class="flex-grow-1">
+                                    <h5 class="card-title mb-1">Alle Tickets</h5>
+                                    <p class="card-text text-muted mb-2">Bekijk en beheer alle tickets</p>
+                                    <button class="btn btn-outline-primary" @onclick="GoToTicketList">
+                                        <i class="bi bi-eye"></i> Bekijken
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </Authorized>
+        </AuthorizeView>
 
-            <div class="col-md-6 mb-3">
-                <div class="card h-100 shadow-sm hover-card">
-                    <div class="card-body d-flex align-items-center">
-                        <i class="bi bi-list-ul display-3 text-primary me-3"></i>
-                        <div class="flex-grow-1">
-                            <h5 class="card-title mb-1">Alle Tickets</h5>
-                            <p class="card-text text-muted mb-2">Bekijk en beheer alle tickets</p>
-                            <button class="btn btn-outline-primary" @onclick="GoToTicketList">
-                                <i class="bi bi-eye"></i> Bekijken
-                            </button>
+        <!-- Monteurs & Bedrijven Sectie - Alleen Admin en Manager -->
+        <AuthorizeView Roles="Fixility Admin,Bedrijfsbeheerder">
+            <Authorized>
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100 shadow-sm hover-card">
+                            <div class="card-body d-flex align-items-center">
+                                <i class="bi bi-person-gear display-3 text-success me-3"></i>
+                                <div class="flex-grow-1">
+                                    <h5 class="card-title mb-1">Monteurs</h5>
+                                    <p class="card-text text-muted mb-2">Beheer monteurs en toewijzingen</p>
+                                    <button class="btn btn-success" @onclick="GoToMechanics">
+                                        <i class="bi bi-people"></i> Beheren
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100 shadow-sm hover-card">
+                            <div class="card-body d-flex align-items-center">
+                                <i class="bi bi-building display-3 text-info me-3"></i>
+                                <div class="flex-grow-1">
+                                    <h5 class="card-title mb-1">Bedrijven</h5>
+                                    <p class="card-text text-muted mb-2">Beheer bedrijven en contacten</p>
+                                    <button class="btn btn-info" @onclick="GoToCompanies">
+                                        <i class="bi bi-building-gear"></i> Beheren
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </Authorized>
+        </AuthorizeView>
 
-        <!-- Snelle Acties - Monteurs & Bedrijven -->
-        <div class="row mb-3">
-            <div class="col-md-6 mb-3">
-                <div class="card h-100 shadow-sm hover-card">
-                    <div class="card-body d-flex align-items-center">
-                        <i class="bi bi-person-gear display-3 text-success me-3"></i>
-                        <div class="flex-grow-1">
-                            <h5 class="card-title mb-1">Monteurs</h5>
-                            <p class="card-text text-muted mb-2">Beheer monteurs en toewijzingen</p>
-                            <button class="btn btn-success" @onclick="GoToMechanics">
-                                <i class="bi bi-people"></i> Beheren
-                            </button>
+        <!-- Objecten Sectie - Admin, Manager en Mechanic -->
+        <AuthorizeView Roles="Fixility Admin,Bedrijfsbeheerder,Monteur">
+            <Authorized>
+                <div class="row mb-3">
+                    @* Nieuw Object: Alleen Admin en Manager *@
+                    <AuthorizeView Roles="Fixility Admin,Bedrijfsbeheerder" Context="objectAuth">
+                        <Authorized>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 shadow-sm hover-card">
+                                    <div class="card-body d-flex align-items-center">
+                                        <i class="bi bi-plus-square display-3 text-secondary me-3"></i>
+                                        <div class="flex-grow-1">
+                                            <h5 class="card-title mb-1">Nieuw Object</h5>
+                                            <p class="card-text text-muted mb-2">Voeg objecten toe aan het systeem</p>
+                                            <button class="btn btn-secondary" @onclick="GoToCreateObjects">
+                                                <i class="bi bi-plus-circle"></i> Aanmaken
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </Authorized>
+                    </AuthorizeView>
+
+                    @* Alle Objecten: Admin, Manager en Mechanic *@
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100 shadow-sm hover-card">
+                            <div class="card-body d-flex align-items-center">
+                                <i class="bi bi-box-seam display-3 text-secondary me-3"></i>
+                                <div class="flex-grow-1">
+                                    <h5 class="card-title mb-1">Alle Objecten</h5>
+                                    <p class="card-text text-muted mb-2">Beheer objecten en onderhoud</p>
+                                    <button class="btn btn-outline-secondary" @onclick="GoToObjects">
+                                        <i class="bi bi-box"></i> Beheren
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </Authorized>
+        </AuthorizeView>
 
-            <div class="col-md-6 mb-3">
-                <div class="card h-100 shadow-sm hover-card">
-                    <div class="card-body d-flex align-items-center">
-                        <i class="bi bi-building display-3 text-info me-3"></i>
-                        <div class="flex-grow-1">
-                            <h5 class="card-title mb-1">Bedrijven</h5>
-                            <p class="card-text text-muted mb-2">Beheer bedrijven en contacten</p>
-                            <button class="btn btn-info" @onclick="GoToCompanies">
-                                <i class="bi bi-building-gear"></i> Beheren
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Snelle Acties - Objecten -->
-        <div class="row mb-3">
-            <div class="col-md-6 mb-3">
-                <div class="card h-100 shadow-sm hover-card">
-                    <div class="card-body d-flex align-items-center">
-                        <i class="bi bi-plus-square display-3 text-secondary me-3"></i>
-                        <div class="flex-grow-1">
-                            <h5 class="card-title mb-1">Nieuw Object</h5>
-                            <p class="card-text text-muted mb-2">Voeg objecten toe aan het systeem</p>
-                            <button class="btn btn-secondary" @onclick="GoToCreateObjects">
-                                <i class="bi bi-plus-circle"></i> Aanmaken
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 mb-3">
-                <div class="card h-100 shadow-sm hover-card">
-                    <div class="card-body d-flex align-items-center">
-                        <i class="bi bi-box-seam display-3 text-secondary me-3"></i>
-                        <div class="flex-grow-1">
-                            <h5 class="card-title mb-1">Alle Objecten</h5>
-                            <p class="card-text text-muted mb-2">Beheer objecten en onderhoud</p>
-                            <button class="btn btn-outline-secondary" @onclick="GoToObjects">
-                                <i class="bi bi-box"></i> Beheren
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Statistieken Cards -->
+        <!-- Statistieken Cards - Voor iedereen, maar gefilterd -->
+        <h4 class="mb-3 mt-4">Statistieken</h4>
         <div class="row mb-4">
             <div class="col-md-3 mb-3">
                 <div class="card text-white h-100 shadow-sm" style="background-color: #CFB015;">
@@ -129,7 +172,7 @@
                         <i class="bi bi-exclamation-circle display-4 mb-2"></i>
                         <h5 class="card-title">Open Tickets</h5>
                         <h2 class="display-3 fw-bold">@openTicketsCount</h2>
-                        <small>Wachten op actie</small>
+                        <small>@GetStatisticSubtext("open")</small>
                     </div>
                 </div>
             </div>
@@ -140,33 +183,62 @@
                         <i class="bi bi-ticket-perforated display-4 mb-2"></i>
                         <h5 class="card-title">Totaal Tickets</h5>
                         <h2 class="display-3 fw-bold">@totalTicketsCount</h2>
-                        <small>Alle tickets</small>
+                        <small>@GetStatisticSubtext("total")</small>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-3 mb-3">
-                <div class="card text-white bg-success h-100 shadow-sm">
-                    <div class="card-body text-center">
-                        <i class="bi bi-person-gear display-4 mb-2"></i>
-                        <h5 class="card-title">Actieve Monteurs</h5>
-                        <h2 class="display-3 fw-bold">@activeMechanicsCount</h2>
-                        <small>Beschikbaar</small>
+            @* Actieve Monteurs: Alleen Admin en Manager *@
+            <AuthorizeView Roles="Fixility Admin,Bedrijfsbeheerder">
+                <Authorized>
+                    <div class="col-md-3 mb-3">
+                        <div class="card text-white bg-success h-100 shadow-sm">
+                            <div class="card-body text-center">
+                                <i class="bi bi-person-gear display-4 mb-2"></i>
+                                <h5 class="card-title">Actieve Monteurs</h5>
+                                <h2 class="display-3 fw-bold">@activeMechanicsCount</h2>
+                                <small>@GetStatisticSubtext("mechanics")</small>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </Authorized>
+            </AuthorizeView>
 
-            <div class="col-md-3 mb-3">
-                <div class="card text-white bg-info h-100 shadow-sm">
-                    <div class="card-body text-center">
-                        <i class="bi bi-building display-4 mb-2"></i>
-                        <h5 class="card-title">Bedrijven</h5>
-                        <h2 class="display-3 fw-bold">@totalCompaniesCount</h2>
-                        <small>Geregistreerd</small>
+            @* Bedrijven: Alleen Admin en Manager *@
+            <AuthorizeView Roles="Fixility Admin,Bedrijfsbeheerder">
+                <Authorized>
+                    <div class="col-md-3 mb-3">
+                        <div class="card text-white bg-info h-100 shadow-sm">
+                            <div class="card-body text-center">
+                                <i class="bi bi-building display-4 mb-2"></i>
+                                <h5 class="card-title">Bedrijven</h5>
+                                <h2 class="display-3 fw-bold">@totalCompaniesCount</h2>
+                                <small>@GetStatisticSubtext("companies")</small>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </Authorized>
+            </AuthorizeView>
         </div>
+
+        <!-- Info voor Mechanic en Reporter -->
+        <AuthorizeView Roles="Monteur">
+            <Authorized>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Monteur:</strong> Je ziet hier je eigen tickets en objecten.
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Melder">
+            <Authorized>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Melder:</strong> Je ziet hier tickets van je bedrijf. Je kunt nieuwe tickets aanmaken.
+                </div>
+            </Authorized>
+        </AuthorizeView>
     }
 </div>
 
@@ -176,10 +248,11 @@
         border: 1px solid rgba(0, 0, 0, 0.125);
     }
 
-    .hover-card:hover {
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-        border-color: rgba(0, 0, 0, 0.2);
-    }
+        .hover-card:hover {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+            border-color: rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
 
     .display-4 {
         line-height: 1;
@@ -189,9 +262,18 @@
     .card-body i.display-4 {
         opacity: 0.9;
     }
+
+    .badge {
+        font-size: 0.85rem;
+    }
 </style>
 
 @code {
+    // ❌ VERWIJDER DEZE REGELS - horen niet in Index.razor:
+    // [Parameter] public int TicketId { get; set; }
+    // private TicketDetailViewModel viewModel = new();
+
+    // ✅ CORRECTE CODE VOOR INDEX.RAZOR:
     private int openTicketsCount = 0;
     private int totalTicketsCount = 0;
     private int activeMechanicsCount = 0;
@@ -199,12 +281,36 @@
 
     private bool isLoading = true;
     private string errorMessage = string.Empty;
+    private string? userRole;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Laad alle statistieken parallel voor snelheid
+            // Haal gebruikersrol op voor display
+            userRole = await GetUserRoleDisplay();
+
+            // 🔐 Laad statistieken op basis van rol
+            await LoadStatistics();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Kon dashboard niet laden: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// 🔐 Laad statistieken op basis van gebruikersrol
+    /// </summary>
+    private async Task LoadStatistics()
+    {
+        // Admin ziet ALLE statistieken
+        if (await AuthService.IsAdminAsync())
+        {
             var openTicketsTask = ApiService.GetOpenTicketsCountAsync();
             var totalTicketsTask = ApiService.GetTotalTicketsCountAsync();
             var mechanicsTask = ApiService.GetActiveMechanicsCountAsync();
@@ -216,20 +322,121 @@
             totalTicketsCount = await totalTicketsTask;
             activeMechanicsCount = await mechanicsTask;
             totalCompaniesCount = await companiesTask;
+            return;
         }
-        catch (Exception ex)
+
+        var userCompanyIds = await AuthService.GetUserCompanyIdsAsync();
+        var userId = await AuthService.GetUserIdAsync();
+
+        // Monteur: alleen eigen tickets
+        if (await AuthService.IsMechanicAsync())
         {
-            errorMessage = $"Kon statistieken niet laden: {ex.Message}";
+            var allTickets = await ApiService.GetAllTicketsAsync();
+            var myTickets = allTickets.Where(t => t.MechanicID.HasValue && t.MechanicID.Value == userId).ToList();
+
+            openTicketsCount = myTickets.Count(t => t.Status == Models.Enums.TicketStatus.Open ||
+                                                    t.Status == Models.Enums.TicketStatus.Assigned);
+            totalTicketsCount = myTickets.Count;
+            return;
         }
-        finally
+
+        // Manager en Reporter: tickets van eigen bedrijf(ven)
+        var companyTickets = await ApiService.GetAllTicketsAsync();
+        var filteredTickets = companyTickets.Where(t => userCompanyIds.Contains(t.CompanyID)).ToList();
+
+        openTicketsCount = filteredTickets.Count(t => t.Status == Models.Enums.TicketStatus.Open ||
+                                                      t.Status == Models.Enums.TicketStatus.Assigned);
+        totalTicketsCount = filteredTickets.Count;
+
+        // Manager krijgt ook monteurs en bedrijven statistieken
+        if (await AuthService.IsManagerAsync())
         {
-            isLoading = false;
+            var allMechanics = await ApiService.GetActiveMechanicsAsync();
+            activeMechanicsCount = allMechanics.Count(m => m.CompanyID.HasValue &&
+                                                            userCompanyIds.Contains(m.CompanyID.Value));
+
+            totalCompaniesCount = userCompanyIds.Count;
         }
     }
+
+    /// <summary>
+    /// Haal de gebruikersrol op voor weergave
+    /// </summary>
+    private async Task<string?> GetUserRoleDisplay()
+    {
+        if (await AuthService.IsAdminAsync())
+            return "Fixility Admin";
+
+        if (await AuthService.IsManagerAsync())
+            return "Bedrijfsbeheerder";
+
+        if (await AuthService.IsMechanicAsync())
+            return "Monteur";
+
+        if (await AuthService.IsReporterAsync())
+            return "Melder";
+
+        return null;
+    }
+
+    /// <summary>
+    /// Bepaal de Bootstrap badge class voor de rol
+    /// </summary>
+    private string GetRoleBadgeClass()
+    {
+        return userRole switch
+        {
+            "Fixility Admin" => "bg-danger",
+            "Bedrijfsbeheerder" => "bg-warning text-dark",
+            "Monteur" => "bg-info",
+            "Melder" => "bg-secondary",
+            _ => "bg-secondary"
+        };
+    }
+
+    /// <summary>
+    /// Geef contextuele subtekst bij statistieken
+    /// </summary>
+    private string GetStatisticSubtext(string type)
+    {
+        if (userRole == "Fixility Admin")
+        {
+            return type switch
+            {
+                "open" => "Wachten op actie",
+                "total" => "Alle tickets",
+                "mechanics" => "Beschikbaar",
+                "companies" => "Geregistreerd",
+                _ => ""
+            };
+        }
+
+        if (userRole == "Monteur")
+        {
+            return type switch
+            {
+                "open" => "Jouw open tickets",
+                "total" => "Jouw tickets",
+                _ => ""
+            };
+        }
+
+        // Manager en Reporter
+        return type switch
+        {
+            "open" => "Jouw bedrijf",
+            "total" => "Jouw bedrijf",
+            "mechanics" => "Jouw bedrijf",
+            "companies" => "Jouw bedrijf",
+            _ => ""
+        };
+    }
+
+    // ==================== NAVIGATION ====================
     private void GoToCreateTicket() => Navigation.NavigateTo("/ticket/create");
     private void GoToCreateObjects() => Navigation.NavigateTo("/object/create");
     private void GoToTicketList() => Navigation.NavigateTo("/ticket");
     private void GoToCompanies() => Navigation.NavigateTo("/company");
     private void GoToMechanics() => Navigation.NavigateTo("/mechanic");
-    private void GoToObjects() => Navigation.NavigateTo("/object");   
+    private void GoToObjects() => Navigation.NavigateTo("/object");
 }

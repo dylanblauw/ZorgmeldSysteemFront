@@ -1,4 +1,7 @@
 ﻿@page "/company/create"
+@attribute [Authorize(Roles = "Admin,Administrator,Fixility Admin")]
+
+@using Microsoft.AspNetCore.Authorization
 @using ZorgmeldSysteem.Blazor.Models.DTOs.Company
 @using ZorgmeldSysteem.Blazor.Services.Api
 @using ZorgmeldSysteem.Blazor.Components.Common
@@ -18,7 +21,7 @@
 
     @if (!string.IsNullOrEmpty(errorMessage))
     {
-    <AlertMessage Message="@errorMessage" Type="danger" Icon="exclamation-triangle" />
+        <AlertMessage Message="@errorMessage" Type="danger" Icon="exclamation-triangle" />
     }
 
     <div class="card">
