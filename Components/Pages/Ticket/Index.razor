@@ -33,7 +33,7 @@
         </AuthorizeView>
     </div>
 
-    <!-- 🔍 DEBUG INFO - TIJDELIJK! -->
+   @*  <!-- 🔍 DEBUG INFO - TIJDELIJK! -->
     @if (!string.IsNullOrEmpty(debugInfo))
     {
         <div class="alert alert-warning alert-dismissible fade show">
@@ -42,7 +42,7 @@
             <button type="button" class="btn-close" @onclick="() => debugInfo = string.Empty"></button>
         </div>
     }
-
+ *@
     <!-- Info message voor Monteurs -->
     @if (showMechanicInfo)
     {
