@@ -27,13 +27,22 @@ builder.Services.AddScoped<AuthorizationService>();
 builder.Services.AddScoped<AuthHttpMessageHandler>();
 
 // ==================== API BASE URL ====================
-var apiBaseUrl = "https://localhost:7159";
+var apiBaseUrl = builder.Environment.IsDevelopment()
+    ? "https://localhost:7159"  // Lokaal ontwikkelen
+    : "https://zorgmeldsysteem-backend.fly.dev";  // Productie op Fly.io
 
-// ==================== API SERVICES MET AUTH ====================
+// ==================== API SERVICES MET AUTH + SSL FIX ====================
 // AuthApiService (GEEN auth handler nodig voor login zelf)
 builder.Services.AddHttpClient<AuthApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback =
+        builder.Environment.IsDevelopment()
+            ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            : null
 });
 
 // Andere API services MET auth handler (voegen automatisch token toe)
@@ -41,25 +50,53 @@ builder.Services.AddHttpClient<TicketApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
 })
-.AddHttpMessageHandler<AuthHttpMessageHandler>();
+.AddHttpMessageHandler<AuthHttpMessageHandler>()
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback =
+        builder.Environment.IsDevelopment()
+            ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            : null
+});
 
 builder.Services.AddHttpClient<ObjectApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
 })
-.AddHttpMessageHandler<AuthHttpMessageHandler>();
+.AddHttpMessageHandler<AuthHttpMessageHandler>()
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback =
+        builder.Environment.IsDevelopment()
+            ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            : null
+});
 
 builder.Services.AddHttpClient<MechanicApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
 })
-.AddHttpMessageHandler<AuthHttpMessageHandler>();
+.AddHttpMessageHandler<AuthHttpMessageHandler>()
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback =
+        builder.Environment.IsDevelopment()
+            ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            : null
+});
 
 builder.Services.AddHttpClient<CompanyApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
 })
-.AddHttpMessageHandler<AuthHttpMessageHandler>();
+.AddHttpMessageHandler<AuthHttpMessageHandler>()
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback =
+        builder.Environment.IsDevelopment()
+            ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            : null
+});
 
 // ==================== HELPER SERVICES ====================
 builder.Services.AddSingleton<TicketDisplayService>();
@@ -81,10 +118,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 // ==================== MIDDLEWARE ====================
-
-app.UseAuthentication();  
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
