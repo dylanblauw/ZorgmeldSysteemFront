@@ -9,6 +9,7 @@
 @inject ObjectApiService ObjectApiService
 @inject QRCodeService QRCodeService
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 @implements IDisposable
 @rendermode InteractiveServer
 
@@ -384,14 +385,36 @@
         }
     }
 
-    private void DownloadQRCode()
+    private async Task DownloadQRCode()
     {
-        viewModel.SetError("Download functionaliteit wordt binnenkort toegevoegd");
+        try
+        {
+            if (viewModel.Object != null && !string.IsNullOrEmpty(viewModel.QRCodeBase64))
+            {
+                string base64Data = QRCodeService.GetBase64DataFromDataUrl(viewModel.QRCodeBase64);
+                await JS.InvokeVoidAsync("downloadQRCode", base64Data,
+                    $"QRCode-{viewModel.Object.ObjectCode}.png");
+            }
+        }
+        catch (Exception ex)
+        {
+            viewModel.SetError($"Fout bij downloaden: {ex.Message}");
+        }
     }
 
-    private void PrintQRCode()
+    private async Task PrintQRCode()
     {
-        viewModel.SetError("Print functionaliteit wordt binnenkort toegevoegd");
+        try
+        {
+            if (!string.IsNullOrEmpty(viewModel.QRCodeBase64))
+            {
+                await JS.InvokeVoidAsync("printQRCode", viewModel.QRCodeBase64);
+            }
+        }
+        catch (Exception ex)
+        {
+            viewModel.SetError($"Fout bij printen: {ex.Message}");
+        }
     }
 
     private void CreateTicket()
